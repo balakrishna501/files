@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Report: AWS Document Processing Workflow Optimization</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: "Calm Harmony" - A base of warm neutrals (slate, stone) with professional blue and green accents for clarity and a subtle pop of amber for calls-to-action. -->
+    <!-- Application Structure Plan: The SPA is designed as a narrative journey. It starts with a high-level summary, then dives into an interactive "Before vs. After" comparison to immediately address the core problem. Following this is a detailed, explorable diagram of the new architecture. A "Benefits Dashboard" with a radar chart provides a quantifiable summary of improvements. Finally, an "Implementation" section offers actionable next steps. This non-linear, thematic structure allows users to explore based on their interest (e.g., a manager might focus on benefits, an engineer on the architecture), which is more effective than a linear report for understanding and buy-in. -->
+    <!-- Visualization & Content Choices: 
+        1. Report Info: SQS-chained workflow vs. Step Functions workflow. Goal: Compare. Viz: Interactive side-by-side HTML/CSS flow diagram. Interaction: Click a step in the old flow to see its modern replacement. Justification: Directly visualizes the solution to the "too many queues" problem. Library: Vanilla JS for interaction.
+        2. Report Info: Roles of individual AWS services. Goal: Inform/Organize. Viz: Clickable architecture diagram built with HTML/CSS. Interaction: Clicking a service icon reveals a modal with details. Justification: Encourages exploration without cluttering the main UI. Library: Vanilla JS.
+        3. Report Info: Key benefits (Efficiency, Throughput, Scalability, Maintainability). Goal: Compare/Inform. Viz: Radar chart. Interaction: Hover tooltips show improvement details. Justification: Radar charts are excellent for multi-metric comparison, offering a quick, impactful summary of overall improvement. Library: Chart.js.
+        4. Report Info: Implementation steps. Goal: Organize. Viz: Accordion list. Interaction: Click to expand/collapse. Justification: Presents dense information in a clean, digestible format. Library: Vanilla JS.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container { height: 400px; }
+        }
+        .flow-line {
+            position: absolute;
+            background-color: #6b7280;
+            z-index: 0;
+        }
+        .flow-line-h { height: 2px; }
+        .flow-line-v { width: 2px; }
+        .flow-arrow::after {
+            content: '►';
+            position: absolute;
+            color: #6b7280;
+            font-size: 12px;
+        }
+        .flow-arrow.down::after {
+            bottom: -8px; left: 50%; transform: translateX(-50%) rotate(90deg);
+        }
+        .flow-arrow.right::after {
+            right: -8px; top: 50%; transform: translateY(-50%);
+        }
+        .smooth-scroll { scroll-behavior: smooth; }
+        .active-nav {
+            color: #2563eb;
+            border-bottom-color: #2563eb;
+        }
+        .inactive-nav {
+            color: #4b5563;
+            border-bottom-color: transparent;
+        }
+        .component-card { transition: all 0.3s ease-in-out; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 smooth-scroll">
+
+    <!-- Header & Navigation -->
+    <header id="header" class="bg-white/80 backdrop-blur-lg sticky top-0 z-40 border-b border-slate-200">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <span class="text-xl font-bold text-blue-600">AWS Architecture Optimization</span>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#problem-solution" class="nav-link inactive-nav hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium border-b-2 hover:border-blue-600 transition-colors duration-300">Problem & Solution</a>
+                        <a href="#comparison" class="nav-link inactive-nav hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium border-b-2 hover:border-blue-600 transition-colors duration-300">Comparison</a>
+                        <a href="#architecture-deep-dive" class="nav-link inactive-nav hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium border-b-2 hover:border-blue-600 transition-colors duration-300">Architecture</a>
+                        <a href="#benefits" class="nav-link inactive-nav hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium border-b-2 hover:border-blue-600 transition-colors duration-300">Benefits</a>
+                        <a href="#implementation" class="nav-link inactive-nav hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium border-b-2 hover:border-blue-600 transition-colors duration-300">Implementation</a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+
+        <!-- Section 1: Problem & Solution -->
+        <section id="problem-solution" class="mb-16 scroll-mt-24">
+            <div class="text-center mb-12">
+                <h1 class="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight">From Complexity to Clarity</h1>
+                <p class="mt-4 max-w-3xl mx-auto text-lg text-slate-600">Optimizing the AWS document processing workflow for higher throughput, scalability, and efficiency.</p>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-8 items-center">
+                <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                    <h3 class="text-2xl font-bold text-red-600 mb-3">The Challenge: Inefficient Workflow</h3>
+                    <p class="text-slate-600 mb-4">The existing architecture relies on a chain of Amazon SQS queues to manage a sequential workflow. This "queue-chaining" pattern creates operational complexity, fragments error handling, and limits visibility, scalability, and the ability to easily add new features.</p>
+                    <div class="flex items-center justify-center space-x-2 text-sm text-slate-500 p-4 bg-red-50 rounded-lg">
+                        <span>SQS</span> <span class="text-red-400 font-mono">-></span> <span>Lambda</span> <span class="text-red-400 font-mono">-></span> <span>SQS</span> <span class="text-red-400 font-mono">-></span> <span>Lambda...</span>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                    <h3 class="text-2xl font-bold text-green-600 mb-3">The Solution: Centralized Orchestration</h3>
+                    <p class="text-slate-600 mb-4">We propose a modern, serverless architecture centered on <strong class="text-green-700">AWS Step Functions</strong>. This replaces queue-chaining with a visual, centrally managed state machine, dramatically simplifying the workflow, enhancing error handling, and boosting overall performance.</p>
+                     <div class="flex items-center justify-center space-x-2 text-sm text-slate-500 p-4 bg-green-50 rounded-lg">
+                        <span class="text-green-700 font-bold">Step Functions</span> <span class="text-green-400 font-mono">{</span> <span>Lambda</span><span class="text-green-400 font-mono">,</span> <span>Lambda</span> <span class="text-green-400 font-mono">}</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: Interactive Comparison -->
+        <section id="comparison" class="mb-16 scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">Interactive Workflow Comparison</h2>
+                <p class="mt-3 max-w-2xl mx-auto text-lg text-slate-600">Click on a step in the 'Before' diagram to see how it's improved in the 'After' architecture.</p>
+            </div>
+
+            <div class="grid lg:grid-cols-2 gap-8">
+                <!-- Before -->
+                <div>
+                    <h3 class="text-2xl font-semibold mb-4 text-center">Before: SQS-Chained Workflow</h3>
+                    <div id="before-workflow" class="bg-white p-6 rounded-xl shadow-lg border border-slate-200 space-y-4">
+                        <div data-step="1" class="component-card cursor-pointer p-4 border-l-4 border-red-400 bg-red-50 rounded-r-lg hover:bg-red-100 hover:shadow-md">
+                            <p class="font-semibold text-slate-800">1. Ingestion Queue</p>
+                            <p class="text-sm text-slate-600">SQS-EDC-Ingestion-Staging-Normal-Queue</p>
+                        </div>
+                        <div data-step="2" class="component-card cursor-pointer p-4 border-l-4 border-red-400 bg-red-50 rounded-r-lg hover:bg-red-100 hover:shadow-md">
+                             <p class="font-semibold text-slate-800">2. Validation Lambda</p>
+                            <p class="text-sm text-slate-600">Triggered by queue, performs validation.</p>
+                        </div>
+                        <div data-step="3" class="component-card cursor-pointer p-4 border-l-4 border-red-400 bg-red-50 rounded-r-lg hover:bg-red-100 hover:shadow-md">
+                             <p class="font-semibold text-slate-800">3. Upload Input Queue</p>
+                            <p class="text-sm text-slate-600">SQS-EDC-iVault-Upload-Input-Queue</p>
+                        </div>
+                        <div data-step="4" class="component-card cursor-pointer p-4 border-l-4 border-red-400 bg-red-50 rounded-r-lg hover:bg-red-100 hover:shadow-md">
+                            <p class="font-semibold text-slate-800">4. Upload Lambda</p>
+                            <p class="text-sm text-slate-600">Triggered by queue, uploads to iVault.</p>
+                        </div>
+                        <div data-step="5" class="component-card cursor-pointer p-4 border-l-4 border-red-400 bg-red-50 rounded-r-lg hover:bg-red-100 hover:shadow-md">
+                            <p class="font-semibold text-slate-800">5. Upload Output Queue</p>
+                            <p class="text-sm text-slate-600">SQS-EDC-iVault-Upload-Output-Queue</p>
+                        </div>
+                         <div data-step="6" class="component-card cursor-pointer p-4 border-l-4 border-red-400 bg-red-50 rounded-r-lg hover:bg-red-100 hover:shadow-md">
+                            <p class="font-semibold text-slate-800">6. Error Handling</p>
+                            <p class="text-sm text-slate-600">Fragmented via individual Dead-Letter Queues (DLQs).</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- After -->
+                <div>
+                    <h3 class="text-2xl font-semibold mb-4 text-center">After: Step Functions Orchestration</h3>
+                    <div id="after-workflow" class="bg-white p-6 rounded-xl shadow-lg border border-slate-200 space-y-4">
+                       <div data-step="1" class="component-card p-4 border-l-4 border-green-400 bg-green-50 rounded-r-lg">
+                            <p class="font-semibold text-slate-800">1. S3 Event Trigger</p>
+                            <p class="text-sm text-slate-600">S3 upload directly triggers EventBridge, starting the workflow. <strong class="text-green-700">Improvement:</strong> Initial queue removed, reducing latency and components.</p>
+                        </div>
+                         <div data-step="2" class="component-card p-4 border-l-4 border-green-400 bg-green-50 rounded-r-lg">
+                            <p class="font-semibold text-slate-800">2. Validation Task</p>
+                            <p class="text-sm text-slate-600">Step Functions invokes the validation Lambda as a defined task. <strong class="text-green-700">Improvement:</strong> State is explicitly managed by the orchestrator.</p>
+                        </div>
+                         <div data-step="3" class="component-card p-4 border-l-4 border-green-400 bg-green-50 rounded-r-lg">
+                            <p class="font-semibold text-slate-800">3. Direct Data Pass</p>
+                            <p class="text-sm text-slate-600">Step Functions passes output from validation directly to the next task. <strong class="text-green-700">Improvement:</strong> Intermediate queue removed, simplifying data flow.</p>
+                        </div>
+                        <div data-step="4" class="component-card p-4 border-l-4 border-green-400 bg-green-50 rounded-r-lg">
+                             <p class="font-semibold text-slate-800">4. Upload Task</p>
+                             <p class="text-sm text-slate-600">Step Functions invokes the upload Lambda as another defined task. <strong class="text-green-700">Improvement:</strong> Orchestrated execution ensures proper sequencing.</p>
+                        </div>
+                        <div data-step="5" class="component-card p-4 border-l-4 border-green-400 bg-green-50 rounded-r-lg">
+                             <p class="font-semibold text-slate-800">5. Final Notification</p>
+                             <p class="text-sm text-slate-600">Workflow completes and can directly notify systems via SNS/EventBridge. <strong class="text-green-700">Improvement:</strong> Final response queue removed.</p>
+                        </div>
+                         <div data-step="6" class="component-card p-4 border-l-4 border-green-400 bg-green-50 rounded-r-lg">
+                             <p class="font-semibold text-slate-800">6. Centralized Error Handling</p>
+                             <p class="text-sm text-slate-600">Step Functions' 'Catch' blocks and retry logic handle all errors centrally. <strong class="text-green-700">Improvement:</strong> Unified, robust, and visible error management.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: Architecture Deep Dive -->
+        <section id="architecture-deep-dive" class="mb-16 scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">Optimized Architecture Deep Dive</h2>
+                <p class="mt-3 max-w-2xl mx-auto text-lg text-slate-600">Click on any component in the diagram below to learn more about its role in the new, streamlined workflow.</p>
+            </div>
+
+            <div class="bg-white p-6 md:p-8 rounded-xl shadow-lg border border-slate-200 relative">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-8 items-start md:items-center">
+                    <!-- Column 1: Input -->
+                    <div class="flex flex-col items-center space-y-4">
+                        <div class="text-center cursor-pointer component-card hover:scale-105" data-component="s3">
+                            <div class="p-4 bg-amber-100 rounded-lg inline-block border-2 border-amber-300">
+                                <span class="text-3xl">🗂️</span>
+                            </div>
+                            <p class="mt-2 font-semibold">S3 Ingestion Bucket</p>
+                        </div>
+                    </div>
+                    <!-- Column 2: Trigger -->
+                    <div class="flex flex-col items-center space-y-4">
+                        <div class="text-center cursor-pointer component-card hover:scale-105" data-component="eventbridge">
+                            <div class="p-4 bg-lime-100 rounded-lg inline-block border-2 border-lime-300">
+                                <span class="text-3xl">🌉</span>
+                            </div>
+                            <p class="mt-2 font-semibold">EventBridge</p>
+                        </div>
+                    </div>
+                    <!-- Column 3: Orchestrator -->
+                    <div class="flex flex-col items-center space-y-4">
+                        <div class="text-center cursor-pointer component-card hover:scale-105" data-component="stepfunctions">
+                            <div class="p-4 bg-rose-100 rounded-lg inline-block border-2 border-rose-300">
+                                <span class="text-3xl">⚙️</span>
+                            </div>
+                            <p class="mt-2 font-semibold">Step Functions</p>
+                        </div>
+                    </div>
+                    <!-- Column 4: Tasks & Data -->
+                    <div class="flex flex-col items-center space-y-8">
+                         <div class="text-center cursor-pointer component-card hover:scale-105" data-component="lambda">
+                            <div class="p-4 bg-sky-100 rounded-lg inline-block border-2 border-sky-300">
+                                <span class="text-3xl">λ</span>
+                            </div>
+                            <p class="mt-2 font-semibold">Lambda Tasks</p>
+                        </div>
+                         <div class="text-center cursor-pointer component-card hover:scale-105" data-component="dynamodb">
+                            <div class="p-4 bg-indigo-100 rounded-lg inline-block border-2 border-indigo-300">
+                                <span class="text-3xl">💾</span>
+                            </div>
+                            <p class="mt-2 font-semibold">DynamoDB Metadata</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 4: Benefits Dashboard -->
+        <section id="benefits" class="mb-16 scroll-mt-24">
+             <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">Benefits Dashboard</h2>
+                <p class="mt-3 max-w-2xl mx-auto text-lg text-slate-600">A visual comparison of the architectural improvements across key metrics.</p>
+            </div>
+            <div class="bg-white p-6 md:p-8 rounded-xl shadow-lg border border-slate-200">
+                <div class="chart-container">
+                    <canvas id="benefitsChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 5: Implementation -->
+        <section id="implementation" class="scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">Implementation Plan</h2>
+                <p class="mt-3 max-w-2xl mx-auto text-lg text-slate-600">Best practices and next steps to deploy the optimized architecture.</p>
+            </div>
+            <div class="max-w-4xl mx-auto space-y-4">
+                <div id="accordion-container">
+                    <!-- Accordion items will be injected here by JS -->
+                </div>
+            </div>
+        </section>
+
+    </main>
+    
+    <!-- Modal for Component Details -->
+    <div id="component-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-start">
+                    <h3 id="modal-title" class="text-2xl font-bold text-slate-900"></h3>
+                    <button id="modal-close" class="text-slate-500 hover:text-slate-800 text-2xl font-bold">&times;</button>
+                </div>
+                <div id="modal-content" class="mt-4 text-slate-600 prose"></div>
+            </div>
+        </div>
+    </div>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    
+    // --- Data Definitions ---
+    const componentDetails = {
+        s3: {
+            title: "Amazon S3: Input & Storage",
+            content: `
+                <p><strong>Role:</strong> Serves as the highly scalable, durable, and cost-effective primary storage for all incoming documents.</p>
+                <p><strong>Function:</strong> It's more than just storage; it's the entry point. An S3 'ObjectCreated' event triggers the entire workflow via EventBridge the moment a document is uploaded. This event-driven approach eliminates polling and reduces latency.</p>
+                <p><strong>Best Practices:</strong></p>
+                <ul>
+                    <li>Utilize lifecycle policies to move older data to cheaper storage tiers (e.g., Glacier).</li>
+                    <li>Implement strict bucket policies and IAM roles to ensure secure data access.</li>
+                </ul>
+            `
+        },
+        eventbridge: {
+            title: "Amazon EventBridge: Event Routing",
+            content: `
+                <p><strong>Role:</strong> Acts as a serverless event bus that connects application components with data from various sources.</p>
+                <p><strong>Function:</strong> It listens for the 'ObjectCreated' event from S3, filters it based on defined rules (e.g., specific file types or metadata), and then reliably triggers the AWS Step Functions workflow, passing along the event payload (like the S3 object key).</p>
+                <p><strong>Why it's better:</strong> Provides a more robust and flexible decoupling point than a direct S3-to-Lambda trigger, allowing for easier expansion of event consumers in the future.</p>
+            `
+        },
+        stepfunctions: {
+            title: "AWS Step Functions: Workflow Orchestration",
+            content: `
+                <p><strong>Role:</strong> The cornerstone of the new architecture. It's a serverless orchestrator that allows you to define and manage your workflow as a visual series of steps.</p>
+                <p><strong>Function:</strong> It replaces the fragile chain of SQS queues. The state machine explicitly defines the sequence of tasks, invokes Lambda functions, handles data passing between them, and manages errors and retries centrally.</p>
+                <p><strong>Key Capabilities:</strong></p>
+                <ul>
+                    <li><strong>Visual Workflow:</strong> Makes the process easy to understand, debug, and maintain.</li>
+                    <li><strong>State Management:</strong> Tracks the status of every execution, providing clear visibility.</li>
+                    <li><strong>Error Handling:</strong> Centralizes retry logic with exponential backoff and 'Catch' states for graceful failure management, eliminating fragmented DLQs.</li>
+                    <li><strong>Flexibility:</strong> Easily add new steps, conditional logic ('Choice' state), or parallel processing ('Parallel' state) without re-architecting.</li>
+                </ul>
+            `
+        },
+        lambda: {
+            title: "AWS Lambda: Task Execution",
+            content: `
+                <p><strong>Role:</strong> Provides the serverless compute power to execute individual, discrete tasks within the workflow.</p>
+                <p><strong>Function:</strong> Each Lambda function has a single purpose (e.g., 'validate metadata', 'prepare for iVault upload', 'update database'). They are invoked by Step Functions as needed, perform their task, and return a result.</p>
+                <p><strong>Best Practices:</strong></p>
+                <ul>
+                    <li><strong>Single Responsibility:</strong> Keeps functions simple, easy to test, and maintainable.</li>
+                    <li><strong>Idempotency:</strong> Design functions so they can be safely retried without causing unintended side effects (like creating duplicate records).</li>
+                    <li><strong>Stateless:</strong> Functions should not store state locally; all state is managed by Step Functions and persisted in DynamoDB.</li>
+                </ul>
+            `
+        },
+        dynamodb: {
+            title: "Amazon DynamoDB: Metadata Management",
+            content: `
+                <p><strong>Role:</strong> A highly scalable, fully managed NoSQL database that serves as the central repository for all document metadata.</p>
+                <p><strong>Function:</strong> It stores information like the S3 file location, validation status, iVault document class, user SID, and processing history. Lambda functions interact with DynamoDB to read and update a document's status as it moves through the workflow.</p>
+                <p><strong>Best Practices:</strong></p>
+                <ul>
+                    <li><strong>On-Demand Capacity:</strong> Use for unpredictable workloads to automatically scale and control costs.</li>
+                    <li><strong>Efficient Queries:</strong> Design primary keys to support fast 'Query' operations, avoiding costly and slow 'Scan' operations.</li>
+                    <li><strong>Data Validation:</strong> Since it's schema-less, perform rigorous data validation within the Lambda functions to ensure data integrity.</li>
+                </ul>
+            `
+        }
+    };
+    
+    const accordionData = [
+        { title: "Security (IAM)", content: "Define least-privilege IAM roles for each Lambda and for the Step Functions execution role. Grant access only to the specific resources required. Use S3 bucket policies to secure data and control event notifications." },
+        { title: "Observability (Logging & Monitoring)", content: "Implement structured logging in all Lambda functions to CloudWatch Logs. Set up CloudWatch alarms on key metrics for Step Functions (e.g., ExecutionsFailed) and Lambda (e.g., Errors, Throttles). Enable AWS X-Ray for end-to-end tracing to pinpoint performance bottlenecks." },
+        { title: "Idempotency", content: "Ensure all Lambda functions are idempotent. This means running a function multiple times with the same input produces the same result, which is critical for safe retries after transient failures." },
+        { title: "Testing Strategy", content: "Implement a full testing suite: unit tests for individual Lambda functions, integration tests for the Step Functions workflow to validate state transitions, and end-to-end tests for the entire pipeline." },
+        { title: "Infrastructure as Code (IaC)", content: "Define the entire architecture (S3, EventBridge, Step Functions, Lambdas, DynamoDB, IAM roles) using an IaC tool like AWS SAM or CloudFormation. This ensures consistent, repeatable, and version-controlled deployments." },
+        { title: "Next Steps", content: "1. Develop a detailed Step Functions state machine definition (ASL). 2. Finalize the DynamoDB schema. 3. Implement the single-purpose Lambda functions. 4. Build a Proof of Concept (PoC) to validate the core workflow. 5. Plan a phased migration if the current system is live." }
+    ];
+
+    // --- Interactive Comparison Logic ---
+    const beforeWorkflow = document.getElementById('before-workflow');
+    const afterWorkflow = document.getElementById('after-workflow');
+    
+    beforeWorkflow.addEventListener('click', function(e) {
+        const stepCard = e.target.closest('.component-card');
+        if (!stepCard) return;
+
+        const step = stepCard.dataset.step;
+        
+        // Reset styles for all cards
+        beforeWorkflow.querySelectorAll('.component-card').forEach(card => {
+            card.classList.remove('ring-2', 'ring-blue-500', 'shadow-xl');
+        });
+        afterWorkflow.querySelectorAll('.component-card').forEach(card => {
+            card.classList.remove('ring-2', 'ring-blue-500', 'shadow-xl', 'scale-105');
+        });
+
+        // Highlight selected card
+        stepCard.classList.add('ring-2', 'ring-blue-500', 'shadow-xl');
+        
+        // Highlight corresponding 'after' card
+        const afterCard = afterWorkflow.querySelector(`[data-step="${step}"]`);
+        if (afterCard) {
+            afterCard.classList.add('ring-2', 'ring-blue-500', 'shadow-xl', 'scale-105');
+            afterCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    });
+
+    // --- Architecture Deep Dive Modal Logic ---
+    const modal = document.getElementById('component-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const modalContent = document.getElementById('modal-content');
+    const modalClose = document.getElementById('modal-close');
+    const architectureSection = document.getElementById('architecture-deep-dive');
+
+    architectureSection.addEventListener('click', function(e) {
+        const componentCard = e.target.closest('[data-component]');
+        if (componentCard) {
+            const componentKey = componentCard.dataset.component;
+            const details = componentDetails[componentKey];
+            if (details) {
+                modalTitle.textContent = details.title;
+                modalContent.innerHTML = details.content;
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+        }
+    });
+
+    const closeModal = () => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    };
+    modalClose.addEventListener('click', closeModal);
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            closeModal();
+        }
+    });
+
+
+    // --- Benefits Chart Logic ---
+    const ctx = document.getElementById('benefitsChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'radar',
+        data: {
+            labels: ['Efficiency', 'Throughput', 'Scalability', 'Maintainability'],
+            datasets: [{
+                label: 'Old Architecture',
+                data: [3, 4, 5, 2],
+                backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                borderColor: 'rgb(239, 68, 68)',
+                pointBackgroundColor: 'rgb(239, 68, 68)',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: 'rgb(239, 68, 68)'
+            }, {
+                label: 'New Architecture (Step Functions)',
+                data: [9, 8, 9, 9],
+                backgroundColor: 'rgba(22, 163, 74, 0.2)',
+                borderColor: 'rgb(22, 163, 74)',
+                pointBackgroundColor: 'rgb(22, 163, 74)',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: 'rgb(22, 163, 74)'
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            scales: {
+                r: {
+                    angleLines: { color: 'rgba(0, 0, 0, 0.1)' },
+                    grid: { color: 'rgba(0, 0, 0, 0.1)' },
+                    pointLabels: {
+                        font: { size: 14, weight: 'bold' },
+                        color: '#334155'
+                    },
+                    suggestedMin: 0,
+                    suggestedMax: 10,
+                    ticks: {
+                        backdropColor: 'rgba(255, 255, 255, 0.75)',
+                        stepSize: 2
+                    }
+                }
+            },
+            plugins: {
+                legend: { position: 'top' },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) { label += ': '; }
+                            label += context.raw;
+                            return label;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // --- Accordion Logic ---
+    const accordionContainer = document.getElementById('accordion-container');
+    accordionData.forEach((item, index) => {
+        const accordionItem = document.createElement('div');
+        accordionItem.classList.add('bg-white', 'rounded-lg', 'shadow-sm', 'border', 'border-slate-200');
+        accordionItem.innerHTML = `
+            <h2 id="accordion-header-${index}">
+                <button type="button" class="accordion-button flex items-center justify-between w-full p-5 font-medium text-left text-slate-700 hover:bg-slate-100" data-accordion-target="#accordion-body-${index}" aria-expanded="false" aria-controls="accordion-body-${index}">
+                    <span>${item.title}</span>
+                    <svg class="accordion-arrow w-6 h-6 shrink-0" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
+                </button>
+            </h2>
+            <div id="accordion-body-${index}" class="accordion-body hidden p-5 border-t border-slate-200">
+                <p class="text-slate-600">${item.content}</p>
+            </div>
+        `;
+        accordionContainer.appendChild(accordionItem);
+    });
+
+    accordionContainer.addEventListener('click', (e) => {
+        const button = e.target.closest('.accordion-button');
+        if (!button) return;
+        
+        const targetId = button.getAttribute('data-accordion-target');
+        const body = document.querySelector(targetId);
+        const isExpanded = button.getAttribute('aria-expanded') === 'true';
+
+        button.setAttribute('aria-expanded', !isExpanded);
+        body.classList.toggle('hidden');
+        button.querySelector('.accordion-arrow').classList.toggle('rotate-180');
+    });
+
+    // --- Active Nav Link on Scroll ---
+    const sections = document.querySelectorAll('section');
+    const navLinks = document.querySelectorAll('.nav-link');
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                navLinks.forEach(link => {
+                    link.classList.remove('active-nav');
+                    link.classList.add('inactive-nav');
+                    if (link.getAttribute('href').substring(1) === entry.target.id) {
+                        link.classList.add('active-nav');
+                        link.classList.remove('inactive-nav');
+                    }
+                });
+            }
+        });
+    }, { rootMargin: '-50% 0px -50% 0px' });
+
+    sections.forEach(section => {
+        observer.observe(section);
+    });
+
+});
+</script>
+
+</body>
+</html>
