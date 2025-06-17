@@ -1,0 +1,124 @@
+erDiagram
+    APPLICATIONS {
+        int app_id PK
+        string app_code UK
+        string app_name
+        text app_description
+        boolean is_active
+        datetime created_at
+        datetime updated_at
+    }
+
+    MODULES {
+        int module_id PK
+        int app_id FK
+        string module_code
+        string module_name
+        int parent_module_id FK
+        boolean is_active
+        datetime created_at
+        datetime updated_at
+    }
+
+    RESOURCES {
+        int resource_id PK
+        int module_id FK
+        string resource_code
+        string resource_name
+        string resource_type
+        string resource_path
+        boolean is_active
+        datetime created_at
+        datetime updated_at
+    }
+
+    PERMISSIONS {
+        int permission_id PK
+        string permission_code UK
+        string permission_name
+        text permission_description
+        boolean is_active
+        datetime created_at
+        datetime updated_at
+    }
+
+    ROLES {
+        int role_id PK
+        int app_id FK
+        string role_code
+        string role_name
+        int role_level
+        int parent_role_id FK
+        boolean is_active
+        datetime created_at
+        datetime updated_at
+    }
+
+    RESOURCE_PERMISSIONS {
+        int resource_permission_id PK
+        int resource_id FK
+        int permission_id FK
+        boolean is_active
+        datetime created_at
+        datetime updated_at
+    }
+
+    ROLE_PERMISSIONS {
+        int role_permission_id PK
+        int role_id FK
+        int resource_id FK
+        int permission_id FK
+        string access_type
+        boolean is_active
+        datetime created_at
+        datetime updated_at
+    }
+
+    ROLE_INHERITANCE {
+        int inheritance_id PK
+        int parent_role_id FK
+        int child_role_id FK
+        boolean is_active
+        datetime created_at
+        datetime updated_at
+    }
+
+    AUDIT_LOG {
+        int audit_id PK
+        string table_name
+        string operation_type
+        int record_id
+        text old_values
+        text new_values
+        string changed_by
+        datetime changed_at
+        string change_reason
+    }
+
+    %% Application Level Relationships
+    APPLICATIONS ||--o{ MODULES : "contains"
+    APPLICATIONS ||--o{ ROLES : "defines"
+
+    %% Module Level Relationships
+    MODULES ||--o{ RESOURCES : "contains"
+    MODULES ||--o{ MODULES : "parent_child"
+
+    %% Resource-Permission Relationships
+    RESOURCES ||--o{ RESOURCE_PERMISSIONS : "has"
+    PERMISSIONS ||--o{ RESOURCE_PERMISSIONS : "applies_to"
+
+    %% Role Relationships
+    ROLES ||--o{ ROLE_PERMISSIONS : "granted"
+    ROLES ||--o{ ROLE_INHERITANCE : "parent"
+    ROLES ||--o{ ROLE_INHERITANCE : "child"
+
+    %% Permission Assignment
+    RESOURCE_PERMISSIONS ||--o{ ROLE_PERMISSIONS : "assigned_via"
+
+    %% Audit Relationships (conceptual)
+    APPLICATIONS ||--o{ AUDIT_LOG : "audited"
+    MODULES ||--o{ AUDIT_LOG : "audited"
+    RESOURCES ||--o{ AUDIT_LOG : "audited"
+    PERMISSIONS ||--o{ AUDIT_LOG : "audited"
+    ROLES ||--o{ AUDIT_LOG : "audited"
+    ROLE_PERMISSIONS ||--o{ AUDIT_LOG : "audited"
