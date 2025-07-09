@@ -1,0 +1,499 @@
+// pom.xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    
+    <groupId>com.payroll</groupId>
+    <artifactId>payroll-orchestrator</artifactId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
+    
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.1.0</version>
+        <relativePath/>
+    </parent>
+    
+    <properties>
+        <java.version>17</java.version>
+        <zeebe.version>8.2.0</zeebe.version>
+    </properties>
+    
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        
+        <dependency>
+            <groupId>io.camunda</groupId>
+            <artifactId>spring-zeebe-starter</artifactId>
+            <version>${zeebe.version}</version>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-logging</artifactId>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+    
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+
+// src/main/java/com/payroll/PayrollOrchestratorApplication.java
+package com.payroll;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import io.camunda.zeebe.spring.client.EnableZeebeClient;
+
+@SpringBootApplication
+@EnableZeebeClient
+public class PayrollOrchestratorApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(PayrollOrchestratorApplication.class, args);
+    }
+}
+
+// src/main/java/com/payroll/controller/PayrollController.java
+package com.payroll.controller;
+
+import com.payroll.service.PayrollProcessService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api/payroll")
+public class PayrollController {
+
+    @Autowired
+    private PayrollProcessService payrollProcessService;
+
+    @PostMapping("/start")
+    public Map<String, Object> startPayrollProcess(@RequestBody(required = false) Map<String, Object> variables) {
+        return payrollProcessService.startPayrollProcess(variables);
+    }
+
+    @GetMapping("/status/{processInstanceKey}")
+    public Map<String, Object> getProcessStatus(@PathVariable String processInstanceKey) {
+        return payrollProcessService.getProcessStatus(processInstanceKey);
+    }
+
+    @PostMapping("/complete-task/{jobKey}")
+    public Map<String, Object> completeUserTask(@PathVariable String jobKey, @RequestBody Map<String, Object> variables) {
+        return payrollProcessService.completeUserTask(jobKey, variables);
+    }
+}
+
+// src/main/java/com/payroll/service/PayrollProcessService.java
+package com.payroll.service;
+
+import io.camunda.zeebe.client.ZeebeClient;
+import io.camunda.zeebe.client.api.response.ProcessInstanceEvent;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.HashMap;
+import java.util.Map;
+
+@Service
+public class PayrollProcessService {
+
+    private static final Logger logger = LoggerFactory.getLogger(PayrollProcessService.class);
+    
+    @Autowired
+    private ZeebeClient zeebeClient;
+
+    public Map<String, Object> startPayrollProcess(Map<String, Object> inputVariables) {
+        try {
+            // Set default variables if not provided
+            Map<String, Object> variables = getDefaultVariables();
+            if (inputVariables != null) {
+                variables.putAll(inputVariables);
+            }
+
+            logger.info("Starting payroll process with variables: {}", variables);
+
+            ProcessInstanceEvent processInstance = zeebeClient.newCreateInstanceCommand()
+                    .bpmnProcessId("Process_PayrollAutomation")
+                    .latestVersion()
+                    .variables(variables)
+                    .send()
+                    .join();
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("processInstanceKey", processInstance.getProcessInstanceKey());
+            response.put("processDefinitionKey", processInstance.getProcessDefinitionKey());
+            response.put("bpmnProcessId", processInstance.getBpmnProcessId());
+            response.put("version", processInstance.getVersion());
+            response.put("status", "STARTED");
+            response.put("variables", variables);
+
+            logger.info("Payroll process started with instance key: {}", processInstance.getProcessInstanceKey());
+            return response;
+
+        } catch (Exception e) {
+            logger.error("Error starting payroll process", e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to start process: " + e.getMessage());
+            return errorResponse;
+        }
+    }
+
+    public Map<String, Object> getProcessStatus(String processInstanceKey) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("processInstanceKey", processInstanceKey);
+        response.put("status", "RUNNING");
+        response.put("message", "Process status check - implement with Operate API if needed");
+        return response;
+    }
+
+    public Map<String, Object> completeUserTask(String jobKey, Map<String, Object> variables) {
+        try {
+            zeebeClient.newCompleteCommand(Long.parseLong(jobKey))
+                    .variables(variables)
+                    .send()
+                    .join();
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("jobKey", jobKey);
+            response.put("status", "COMPLETED");
+            response.put("variables", variables);
+            return response;
+
+        } catch (Exception e) {
+            logger.error("Error completing user task", e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to complete task: " + e.getMessage());
+            return errorResponse;
+        }
+    }
+
+    private Map<String, Object> getDefaultVariables() {
+        Map<String, Object> variables = new HashMap<>();
+        
+        // User assignments
+        variables.put("specialist", "john.doe@company.com");
+        variables.put("payrollManager", "jane.smith@company.com");
+        variables.put("lead", "mike.johnson@company.com");
+        variables.put("manager", "sarah.wilson@company.com");
+        
+        // Process control variables
+        variables.put("payrollCycle", "2024-01");
+        variables.put("companyId", "COMP-001");
+        variables.put("totalEmployees", 150);
+        variables.put("processingMode", "BATCH");
+        
+        // Default validation flags
+        variables.put("inputValidationPassed", false);
+        variables.put("validationErrorsFound", false);
+        variables.put("processingErrorsFound", false);
+        variables.put("finalValidationPassed", false);
+        
+        return variables;
+    }
+}
+
+// src/main/java/com/payroll/worker/PayrollWorkers.java
+package com.payroll.worker;
+
+import io.camunda.zeebe.client.api.response.ActivatedJob;
+import io.camunda.zeebe.client.api.worker.JobClient;
+import io.camunda.zeebe.spring.client.annotation.ZeebeWorker;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
+
+@Component
+public class PayrollWorkers {
+
+    private static final Logger logger = LoggerFactory.getLogger(PayrollWorkers.class);
+
+    @ZeebeWorker(type = "assignResources")
+    public void assignResources(final JobClient client, final ActivatedJob job) {
+        logger.info("Assigning resources for payroll cycle: {}", job.getVariables());
+        
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("resourcesAssigned", true);
+        variables.put("assignedAt", System.currentTimeMillis());
+        
+        client.newCompleteCommand(job.getKey())
+                .variables(variables)
+                .send()
+                .join();
+    }
+
+    @ZeebeWorker(type = "determineControlRecord")
+    public void determineControlRecord(final JobClient client, final ActivatedJob job) {
+        logger.info("Determining control record position: {}", job.getVariables());
+        
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("controlRecordPosition", "READY");
+        variables.put("recordCount", 150);
+        
+        client.newCompleteCommand(job.getKey())
+                .variables(variables)
+                .send()
+                .join();
+    }
+
+    @ZeebeWorker(type = "validateInputs")
+    public void validateInputs(final JobClient client, final ActivatedJob job) {
+        logger.info("Validating inputs to ADP: {}", job.getVariables());
+        
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("inputValidationCompleted", true);
+        variables.put("validationScore", 95.5);
+        
+        client.newCompleteCommand(job.getKey())
+                .variables(variables)
+                .send()
+                .join();
+    }
+
+    @ZeebeWorker(type = "identifyInputErrors")
+    public void identifyInputErrors(final JobClient client, final ActivatedJob job) {
+        logger.info("Identifying input errors: {}", job.getVariables());
+        
+        Map<String, Object> variables = new HashMap<>();
+        boolean hasErrors = ThreadLocalRandom.current().nextBoolean();
+        variables.put("inputErrorsFound", hasErrors);
+        variables.put("errorCount", hasErrors ? ThreadLocalRandom.current().nextInt(1, 5) : 0);
+        variables.put("errorDetails", hasErrors ? "Sample input validation errors found" : "No errors found");
+        
+        client.newCompleteCommand(job.getKey())
+                .variables(variables)
+                .send()
+                .join();
+    }
+
+    @ZeebeWorker(type = "generateHeadcount")
+    public void generateHeadcount(final JobClient client, final ActivatedJob job) {
+        logger.info("Generating headcount report: {}", job.getVariables());
+        
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("headcountGenerated", true);
+        variables.put("totalHeadcount", 150);
+        variables.put("activeEmployees", 145);
+        variables.put("inactiveEmployees", 5);
+        
+        client.newCompleteCommand(job.getKey())
+                .variables(variables)
+                .send()
+                .join();
+    }
+
+    @ZeebeWorker(type = "identifyValidationErrors")
+    public void identifyValidationErrors(final JobClient client, final ActivatedJob job) {
+        logger.info("Identifying validation errors: {}", job.getVariables());
+        
+        Map<String, Object> variables = new HashMap<>();
+        boolean hasErrors = ThreadLocalRandom.current().nextBoolean();
+        variables.put("validationErrorsFound", hasErrors);
+        variables.put("validationErrorCount", hasErrors ? ThreadLocalRandom.current().nextInt(1, 3) : 0);
+        
+        client.newCompleteCommand(job.getKey())
+                .variables(variables)
+                .send()
+                .join();
+    }
+
+    @ZeebeWorker(type = "runPayrollSimulation")
+    public void runPayrollSimulation(final JobClient client, final ActivatedJob job) {
+        logger.info("Running payroll simulation: {}", job.getVariables());
+        
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("simulationCompleted", true);
+        variables.put("totalPayroll", 125000.50);
+        variables.put("simulationSuccessful", true);
+        
+        client.newCompleteCommand(job.getKey())
+                .variables(variables)
+                .send()
+                .join();
+    }
+
+    @ZeebeWorker(type = "identifyProcessingErrors")
+    public void identifyProcessingErrors(final JobClient client, final ActivatedJob job) {
+        logger.info("Identifying processing errors: {}", job.getVariables());
+        
+        Map<String, Object> variables = new HashMap<>();
+        boolean hasErrors = ThreadLocalRandom.current().nextBoolean();
+        variables.put("processingErrorsFound", hasErrors);
+        variables.put("processingErrorCount", hasErrors ? ThreadLocalRandom.current().nextInt(1, 2) : 0);
+        
+        client.newCompleteCommand(job.getKey())
+                .variables(variables)
+                .send()
+                .join();
+    }
+
+    @ZeebeWorker(type = "runFinalPayrollCalc")
+    public void runFinalPayrollCalc(final JobClient client, final ActivatedJob job) {
+        logger.info("Running final payroll calculation: {}", job.getVariables());
+        
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("finalCalculationCompleted", true);
+        variables.put("finalPayrollAmount", 124850.75);
+        variables.put("batchesProcessed", 3);
+        
+        client.newCompleteCommand(job.getKey())
+                .variables(variables)
+                .send()
+                .join();
+    }
+
+    @ZeebeWorker(type = "generatePayRegister")
+    public void generatePayRegister(final JobClient client, final ActivatedJob job) {
+        logger.info("Generating pay register: {}", job.getVariables());
+        
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("payRegisterGenerated", true);
+        variables.put("payRegisterUrl", "https://payroll-system.com/register/2024-01");
+        variables.put("outputValidationPassed", true);
+        
+        client.newCompleteCommand(job.getKey())
+                .variables(variables)
+                .send()
+                .join();
+    }
+
+    @ZeebeWorker(type = "generateFundingInstructions")
+    public void generateFundingInstructions(final JobClient client, final ActivatedJob job) {
+        logger.info("Generating funding instructions: {}", job.getVariables());
+        
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("fundingInstructionsGenerated", true);
+        variables.put("legalEntitiesCount", 3);
+        variables.put("totalFundingAmount", 124850.75);
+        
+        client.newCompleteCommand(job.getKey())
+                .variables(variables)
+                .send()
+                .join();
+    }
+
+    @ZeebeWorker(type = "generateBankFiles")
+    public void generateBankFiles(final JobClient client, final ActivatedJob job) {
+        logger.info("Generating bank files: {}", job.getVariables());
+        
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("bankFilesGenerated", true);
+        variables.put("bankFileCount", 3);
+        variables.put("bankFileFormat", "ACH");
+        
+        client.newCompleteCommand(job.getKey())
+                .variables(variables)
+                .send()
+                .join();
+    }
+
+    @ZeebeWorker(type = "collectAuditReport")
+    public void collectAuditReport(final JobClient client, final ActivatedJob job) {
+        logger.info("Collecting audit report from ADP: {}", job.getVariables());
+        
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("auditReportCollected", true);
+        variables.put("auditReportUrl", "https://adp-system.com/audit/2024-01");
+        variables.put("auditPassed", true);
+        
+        client.newCompleteCommand(job.getKey())
+                .variables(variables)
+                .send()
+                .join();
+    }
+}
+
+// src/main/resources/application.yml
+server:
+  port: 8080
+
+spring:
+  application:
+    name: payroll-orchestrator
+
+zeebe:
+  client:
+    gateway-address: localhost:26500
+    security:
+      plaintext: true
+    worker:
+      max-active-jobs: 32
+      threads: 2
+      default-request-timeout: 30s
+      default-job-timeout: 5m
+
+logging:
+  level:
+    com.payroll: DEBUG
+    io.camunda.zeebe: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+// src/main/resources/static/test-requests.http
+### Start Payroll Process with default values
+POST http://localhost:8080/api/payroll/start
+Content-Type: application/json
+
+{}
+
+### Start Payroll Process with custom values
+POST http://localhost:8080/api/payroll/start
+Content-Type: application/json
+
+{
+    "payrollCycle": "2024-02",
+    "companyId": "COMP-002",
+    "totalEmployees": 200,
+    "specialist": "custom.specialist@company.com"
+}
+
+### Get Process Status
+GET http://localhost:8080/api/payroll/status/{{processInstanceKey}}
+
+### Complete User Task (replace jobKey with actual job key)
+POST http://localhost:8080/api/payroll/complete-task/{{jobKey}}
+Content-Type: application/json
+
+{
+    "approved": true,
+    "comments": "Reviewed and approved",
+    "approvedAt": "2024-01-15T10:30:00Z"
+}

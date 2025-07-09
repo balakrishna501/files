@@ -1,0 +1,485 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.0.0">
+  <bpmn:collaboration id="Collaboration_PayrollAutomation">
+    <bpmn:participant id="Participant_PayrollSystem" name="Payroll Automation System" processRef="Process_PayrollAutomation" />
+  </bpmn:collaboration>
+  
+  <bpmn:process id="Process_PayrollAutomation" name="Payroll Automation Process" isExecutable="true">
+    
+    <!-- Lane Definitions -->
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="Lane_AIAgent" name="AI Agent">
+        <bpmn:flowNodeRef>StartEvent_1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_AssignResources</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_DetermineControlRecord</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ValidateInputs</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_IdentifyInputErrors</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_GenerateHeadcount</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_IdentifyValidationErrors</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_RunPayrollSimulation</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_IdentifyProcessingErrors</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_RunFinalPayrollCalc</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_GeneratePayRegister</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_GenerateFundingInstructions</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_GenerateBankFiles</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CollectAuditReport</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_1</bpmn:flowNodeRef>
+      </bpmn:lane>
+      
+      <bpmn:lane id="Lane_Specialist" name="Specialist">
+        <bpmn:flowNodeRef>Task_SpecialistReviewInput</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_SpecialistReviewValidation</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_SpecialistReviewProcessing</bpmn:flowNodeRef>
+      </bpmn:lane>
+      
+      <bpmn:lane id="Lane_PayrollManager" name="Payroll Manager">
+        <bpmn:flowNodeRef>Task_PayrollManagerSignoffInput</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_PayrollManagerSignoffValidation</bpmn:flowNodeRef>
+      </bpmn:lane>
+      
+      <bpmn:lane id="Lane_Lead" name="Lead">
+        <bpmn:flowNodeRef>Task_LeadReviewFunding</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_LeadSignoffPayRegister</bpmn:flowNodeRef>
+      </bpmn:lane>
+      
+      <bpmn:lane id="Lane_Manager" name="Manager">
+        <bpmn:flowNodeRef>Task_ManagerPayrollApproval</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+
+    <!-- Start Event -->
+    <bpmn:startEvent id="StartEvent_1" name="Workflow started for main payroll cycle">
+      <bpmn:outgoing>Flow_StartToAssign</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <!-- Step 1: Start -->
+    <bpmn:serviceTask id="Task_AssignResources" name="AI Agent to assign resources to tasks" camunda:type="external" camunda:topic="assignResources">
+      <bpmn:incoming>Flow_StartToAssign</bpmn:incoming>
+      <bpmn:outgoing>Flow_AssignToDetermine</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_DetermineControlRecord" name="AI Agent determine control record position" camunda:type="external" camunda:topic="determineControlRecord">
+      <bpmn:incoming>Flow_AssignToDetermine</bpmn:incoming>
+      <bpmn:outgoing>Flow_DetermineToValidate</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Step 2: Input -->
+    <bpmn:serviceTask id="Task_ValidateInputs" name="AI Agent initiates validation of inputs to ADP" camunda:type="external" camunda:topic="validateInputs">
+      <bpmn:incoming>Flow_DetermineToValidate</bpmn:incoming>
+      <bpmn:outgoing>Flow_ValidateToIdentifyInput</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_IdentifyInputErrors" name="AI Agent identified errors and ask specialist to take action" camunda:type="external" camunda:topic="identifyInputErrors">
+      <bpmn:incoming>Flow_ValidateToIdentifyInput</bpmn:incoming>
+      <bpmn:outgoing>Flow_IdentifyInputToSpecialist</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:userTask id="Task_SpecialistReviewInput" name="Specialist review the proposed action and initiate AI or manual correction" camunda:assignee="${specialist}">
+      <bpmn:incoming>Flow_IdentifyInputToSpecialist</bpmn:incoming>
+      <bpmn:outgoing>Flow_SpecialistInputToManager</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:userTask id="Task_PayrollManagerSignoffInput" name="Payroll manager to provide input signoff" camunda:assignee="${payrollManager}">
+      <bpmn:incoming>Flow_SpecialistInputToManager</bpmn:incoming>
+      <bpmn:outgoing>Flow_ManagerInputToValidation</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- Step 3: Validation -->
+    <bpmn:serviceTask id="Task_GenerateHeadcount" name="AI Agent to generate headcount report and initiate input recon" camunda:type="external" camunda:topic="generateHeadcount">
+      <bpmn:incoming>Flow_ManagerInputToValidation</bpmn:incoming>
+      <bpmn:outgoing>Flow_GenerateHeadcountToIdentifyValidation</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_IdentifyValidationErrors" name="AI Agent identified errors and ask specialist to take action" camunda:type="external" camunda:topic="identifyValidationErrors">
+      <bpmn:incoming>Flow_GenerateHeadcountToIdentifyValidation</bpmn:incoming>
+      <bpmn:outgoing>Flow_IdentifyValidationToSpecialist</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:userTask id="Task_SpecialistReviewValidation" name="Specialist review the proposed action and initiate AI or manual correction" camunda:assignee="${specialist}">
+      <bpmn:incoming>Flow_IdentifyValidationToSpecialist</bpmn:incoming>
+      <bpmn:outgoing>Flow_SpecialistValidationToManager</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:userTask id="Task_PayrollManagerSignoffValidation" name="Payroll manager to provide validation signoff" camunda:assignee="${payrollManager}">
+      <bpmn:incoming>Flow_SpecialistValidationToManager</bpmn:incoming>
+      <bpmn:outgoing>Flow_ManagerValidationToProcessing</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- Step 4: Processing -->
+    <bpmn:serviceTask id="Task_RunPayrollSimulation" name="AI Agent to run payroll simulation 1" camunda:type="external" camunda:topic="runPayrollSimulation">
+      <bpmn:incoming>Flow_ManagerValidationToProcessing</bpmn:incoming>
+      <bpmn:outgoing>Flow_SimulationToIdentifyProcessing</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_IdentifyProcessingErrors" name="AI Agent identified errors and ask specialist to take action" camunda:type="external" camunda:topic="identifyProcessingErrors">
+      <bpmn:incoming>Flow_SimulationToIdentifyProcessing</bpmn:incoming>
+      <bpmn:outgoing>Flow_IdentifyProcessingToSpecialist</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:userTask id="Task_SpecialistReviewProcessing" name="Specialist review the proposed action and initiate AI or manual correction" camunda:assignee="${specialist}">
+      <bpmn:incoming>Flow_IdentifyProcessingToSpecialist</bpmn:incoming>
+      <bpmn:outgoing>Flow_SpecialistProcessingToFinal</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:serviceTask id="Task_RunFinalPayrollCalc" name="AI Agent to run final payroll calc in batches" camunda:type="external" camunda:topic="runFinalPayrollCalc">
+      <bpmn:incoming>Flow_SpecialistProcessingToFinal</bpmn:incoming>
+      <bpmn:outgoing>Flow_FinalCalcToPayRegister</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_GeneratePayRegister" name="AI Agent to generate pay register and process final output validation" camunda:type="external" camunda:topic="generatePayRegister">
+      <bpmn:incoming>Flow_FinalCalcToPayRegister</bpmn:incoming>
+      <bpmn:outgoing>Flow_PayRegisterToLeadSignoff</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:userTask id="Task_LeadSignoffPayRegister" name="Lead to signoff pay register" camunda:assignee="${lead}">
+      <bpmn:incoming>Flow_PayRegisterToLeadSignoff</bpmn:incoming>
+      <bpmn:outgoing>Flow_LeadSignoffToFunding</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- Step 5: Funding -->
+    <bpmn:serviceTask id="Task_GenerateFundingInstructions" name="AI Agent to generate legal entity wise funding instructions" camunda:type="external" camunda:topic="generateFundingInstructions">
+      <bpmn:incoming>Flow_LeadSignoffToFunding</bpmn:incoming>
+      <bpmn:outgoing>Flow_FundingToLeadReview</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:userTask id="Task_LeadReviewFunding" name="Lead to review the funding instructions and provide signoff" camunda:assignee="${lead}">
+      <bpmn:incoming>Flow_FundingToLeadReview</bpmn:incoming>
+      <bpmn:outgoing>Flow_LeadReviewToDisbursement</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- Step 6: Disbursement -->
+    <bpmn:serviceTask id="Task_GenerateBankFiles" name="AI Agent to generate bank files" camunda:type="external" camunda:topic="generateBankFiles">
+      <bpmn:incoming>Flow_LeadReviewToDisbursement</bpmn:incoming>
+      <bpmn:outgoing>Flow_BankFilesToCollectAudit</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_CollectAuditReport" name="AI Agent to collect audit report from ADP" camunda:type="external" camunda:topic="collectAuditReport">
+      <bpmn:incoming>Flow_BankFilesToCollectAudit</bpmn:incoming>
+      <bpmn:outgoing>Flow_CollectAuditToManager</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Step 7: Exit -->
+    <bpmn:userTask id="Task_ManagerPayrollApproval" name="Manager will approve payroll for month" camunda:assignee="${manager}">
+      <bpmn:incoming>Flow_CollectAuditToManager</bpmn:incoming>
+      <bpmn:outgoing>Flow_ManagerToEnd</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:endEvent id="EndEvent_1" name="Payroll cycle completed">
+      <bpmn:incoming>Flow_ManagerToEnd</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Sequence Flows -->
+    <bpmn:sequenceFlow id="Flow_StartToAssign" sourceRef="StartEvent_1" targetRef="Task_AssignResources" />
+    <bpmn:sequenceFlow id="Flow_AssignToDetermine" sourceRef="Task_AssignResources" targetRef="Task_DetermineControlRecord" />
+    <bpmn:sequenceFlow id="Flow_DetermineToValidate" sourceRef="Task_DetermineControlRecord" targetRef="Task_ValidateInputs" />
+    <bpmn:sequenceFlow id="Flow_ValidateToIdentifyInput" sourceRef="Task_ValidateInputs" targetRef="Task_IdentifyInputErrors" />
+    <bpmn:sequenceFlow id="Flow_IdentifyInputToSpecialist" sourceRef="Task_IdentifyInputErrors" targetRef="Task_SpecialistReviewInput" />
+    <bpmn:sequenceFlow id="Flow_SpecialistInputToManager" sourceRef="Task_SpecialistReviewInput" targetRef="Task_PayrollManagerSignoffInput" />
+    <bpmn:sequenceFlow id="Flow_ManagerInputToValidation" sourceRef="Task_PayrollManagerSignoffInput" targetRef="Task_GenerateHeadcount" />
+    <bpmn:sequenceFlow id="Flow_GenerateHeadcountToIdentifyValidation" sourceRef="Task_GenerateHeadcount" targetRef="Task_IdentifyValidationErrors" />
+    <bpmn:sequenceFlow id="Flow_IdentifyValidationToSpecialist" sourceRef="Task_IdentifyValidationErrors" targetRef="Task_SpecialistReviewValidation" />
+    <bpmn:sequenceFlow id="Flow_SpecialistValidationToManager" sourceRef="Task_SpecialistReviewValidation" targetRef="Task_PayrollManagerSignoffValidation" />
+    <bpmn:sequenceFlow id="Flow_ManagerValidationToProcessing" sourceRef="Task_PayrollManagerSignoffValidation" targetRef="Task_RunPayrollSimulation" />
+    <bpmn:sequenceFlow id="Flow_SimulationToIdentifyProcessing" sourceRef="Task_RunPayrollSimulation" targetRef="Task_IdentifyProcessingErrors" />
+    <bpmn:sequenceFlow id="Flow_IdentifyProcessingToSpecialist" sourceRef="Task_IdentifyProcessingErrors" targetRef="Task_SpecialistReviewProcessing" />
+    <bpmn:sequenceFlow id="Flow_SpecialistProcessingToFinal" sourceRef="Task_SpecialistReviewProcessing" targetRef="Task_RunFinalPayrollCalc" />
+    <bpmn:sequenceFlow id="Flow_FinalCalcToPayRegister" sourceRef="Task_RunFinalPayrollCalc" targetRef="Task_GeneratePayRegister" />
+    <bpmn:sequenceFlow id="Flow_PayRegisterToLeadSignoff" sourceRef="Task_GeneratePayRegister" targetRef="Task_LeadSignoffPayRegister" />
+    <bpmn:sequenceFlow id="Flow_LeadSignoffToFunding" sourceRef="Task_LeadSignoffPayRegister" targetRef="Task_GenerateFundingInstructions" />
+    <bpmn:sequenceFlow id="Flow_FundingToLeadReview" sourceRef="Task_GenerateFundingInstructions" targetRef="Task_LeadReviewFunding" />
+    <bpmn:sequenceFlow id="Flow_LeadReviewToDisbursement" sourceRef="Task_LeadReviewFunding" targetRef="Task_GenerateBankFiles" />
+    <bpmn:sequenceFlow id="Flow_BankFilesToCollectAudit" sourceRef="Task_GenerateBankFiles" targetRef="Task_CollectAuditReport" />
+    <bpmn:sequenceFlow id="Flow_CollectAuditToManager" sourceRef="Task_CollectAuditReport" targetRef="Task_ManagerPayrollApproval" />
+    <bpmn:sequenceFlow id="Flow_ManagerToEnd" sourceRef="Task_ManagerPayrollApproval" targetRef="EndEvent_1" />
+
+  </bpmn:process>
+
+  <!-- Diagram Information -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_PayrollAutomation">
+      
+      <!-- Participant Shape -->
+      <bpmndi:BPMNShape id="Participant_PayrollSystem_di" bpmnElement="Participant_PayrollSystem" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="2800" height="1200" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+
+      <!-- Lane Shapes -->
+      <bpmndi:BPMNShape id="Lane_AIAgent_di" bpmnElement="Lane_AIAgent" isHorizontal="true">
+        <dc:Bounds x="190" y="80" width="2770" height="400" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Lane_Specialist_di" bpmnElement="Lane_Specialist" isHorizontal="true">
+        <dc:Bounds x="190" y="480" width="2770" height="200" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Lane_PayrollManager_di" bpmnElement="Lane_PayrollManager" isHorizontal="true">
+        <dc:Bounds x="190" y="680" width="2770" height="200" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Lane_Lead_di" bpmnElement="Lane_Lead" isHorizontal="true">
+        <dc:Bounds x="190" y="880" width="2770" height="200" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Lane_Manager_di" bpmnElement="Lane_Manager" isHorizontal="true">
+        <dc:Bounds x="190" y="1080" width="2770" height="200" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+
+      <!-- Start Event -->
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="232" y="262" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="210" y="305" width="80" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- AI Agent Tasks -->
+      <bpmndi:BPMNShape id="Task_AssignResources_di" bpmnElement="Task_AssignResources">
+        <dc:Bounds x="320" y="240" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_DetermineControlRecord_di" bpmnElement="Task_DetermineControlRecord">
+        <dc:Bounds x="320" y="340" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ValidateInputs_di" bpmnElement="Task_ValidateInputs">
+        <dc:Bounds x="460" y="240" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_IdentifyInputErrors_di" bpmnElement="Task_IdentifyInputErrors">
+        <dc:Bounds x="460" y="340" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_GenerateHeadcount_di" bpmnElement="Task_GenerateHeadcount">
+        <dc:Bounds x="760" y="240" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_IdentifyValidationErrors_di" bpmnElement="Task_IdentifyValidationErrors">
+        <dc:Bounds x="760" y="340" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_RunPayrollSimulation_di" bpmnElement="Task_RunPayrollSimulation">
+        <dc:Bounds x="1060" y="240" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_IdentifyProcessingErrors_di" bpmnElement="Task_IdentifyProcessingErrors">
+        <dc:Bounds x="1060" y="340" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_RunFinalPayrollCalc_di" bpmnElement="Task_RunFinalPayrollCalc">
+        <dc:Bounds x="1260" y="240" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_GeneratePayRegister_di" bpmnElement="Task_GeneratePayRegister">
+        <dc:Bounds x="1400" y="240" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_GenerateFundingInstructions_di" bpmnElement="Task_GenerateFundingInstructions">
+        <dc:Bounds x="1660" y="240" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_GenerateBankFiles_di" bpmnElement="Task_GenerateBankFiles">
+        <dc:Bounds x="1960" y="240" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_CollectAuditReport_di" bpmnElement="Task_CollectAuditReport">
+        <dc:Bounds x="2100" y="240" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+
+      <!-- Specialist Tasks -->
+      <bpmndi:BPMNShape id="Task_SpecialistReviewInput_di" bpmnElement="Task_SpecialistReviewInput">
+        <dc:Bounds x="460" y="520" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_SpecialistReviewValidation_di" bpmnElement="Task_SpecialistReviewValidation">
+        <dc:Bounds x="760" y="520" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_SpecialistReviewProcessing_di" bpmnElement="Task_SpecialistReviewProcessing">
+        <dc:Bounds x="1060" y="520" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+
+      <!-- Payroll Manager Tasks -->
+      <bpmndi:BPMNShape id="Task_PayrollManagerSignoffInput_di" bpmnElement="Task_PayrollManagerSignoffInput">
+        <dc:Bounds x="460" y="720" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_PayrollManagerSignoffValidation_di" bpmnElement="Task_PayrollManagerSignoffValidation">
+        <dc:Bounds x="760" y="720" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+
+      <!-- Lead Tasks -->
+      <bpmndi:BPMNShape id="Task_LeadSignoffPayRegister_di" bpmnElement="Task_LeadSignoffPayRegister">
+        <dc:Bounds x="1400" y="920" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_LeadReviewFunding_di" bpmnElement="Task_LeadReviewFunding">
+        <dc:Bounds x="1660" y="920" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+
+      <!-- Manager Task -->
+      <bpmndi:BPMNShape id="Task_ManagerPayrollApproval_di" bpmnElement="Task_ManagerPayrollApproval">
+        <dc:Bounds x="2100" y="1120" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+
+      <!-- End Event -->
+      <bpmndi:BPMNShape id="EndEvent_1_di" bpmnElement="EndEvent_1">
+        <dc:Bounds x="2272" y="262" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2250" y="305" width="80" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Sequence Flow Edges -->
+      <bpmndi:BPMNEdge id="Flow_StartToAssign_di" bpmnElement="Flow_StartToAssign">
+        <di:waypoint x="268" y="280" />
+        <di:waypoint x="320" y="280" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_AssignToDetermine_di" bpmnElement="Flow_AssignToDetermine">
+        <di:waypoint x="370" y="320" />
+        <di:waypoint x="370" y="340" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_DetermineToValidate_di" bpmnElement="Flow_DetermineToValidate">
+        <di:waypoint x="420" y="380" />
+        <di:waypoint x="440" y="380" />
+        <di:waypoint x="440" y="280" />
+        <di:waypoint x="460" y="280" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_ValidateToIdentifyInput_di" bpmnElement="Flow_ValidateToIdentifyInput">
+        <di:waypoint x="510" y="320" />
+        <di:waypoint x="510" y="340" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_IdentifyInputToSpecialist_di" bpmnElement="Flow_IdentifyInputToSpecialist">
+        <di:waypoint x="510" y="420" />
+        <di:waypoint x="510" y="520" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_SpecialistInputToManager_di" bpmnElement="Flow_SpecialistInputToManager">
+        <di:waypoint x="510" y="600" />
+        <di:waypoint x="510" y="720" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_ManagerInputToValidation_di" bpmnElement="Flow_ManagerInputToValidation">
+        <di:waypoint x="560" y="760" />
+        <di:waypoint x="660" y="760" />
+        <di:waypoint x="660" y="280" />
+        <di:waypoint x="760" y="280" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_GenerateHeadcountToIdentifyValidation_di" bpmnElement="Flow_GenerateHeadcountToIdentifyValidation">
+        <di:waypoint x="810" y="320" />
+        <di:waypoint x="810" y="340" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_IdentifyValidationToSpecialist_di" bpmnElement="Flow_IdentifyValidationToSpecialist">
+        <di:waypoint x="810" y="420" />
+        <di:waypoint x="810" y="520" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_SpecialistValidationToManager_di" bpmnElement="Flow_SpecialistValidationToManager">
+        <di:waypoint x="810" y="600" />
+        <di:waypoint x="810" y="720" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_ManagerValidationToProcessing_di" bpmnElement="Flow_ManagerValidationToProcessing">
+        <di:waypoint x="860" y="760" />
+        <di:waypoint x="960" y="760" />
+        <di:waypoint x="960" y="280" />
+        <di:waypoint x="1060" y="280" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_SimulationToIdentifyProcessing_di" bpmnElement="Flow_SimulationToIdentifyProcessing">
+        <di:waypoint x="1110" y="320" />
+        <di:waypoint x="1110" y="340" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_IdentifyProcessingToSpecialist_di" bpmnElement="Flow_IdentifyProcessingToSpecialist">
+        <di:waypoint x="1110" y="420" />
+        <di:waypoint x="1110" y="520" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_SpecialistProcessingToFinal_di" bpmnElement="Flow_SpecialistProcessingToFinal">
+        <di:waypoint x="1110" y="520" />
+        <di:waypoint x="1110" y="460" />
+        <di:waypoint x="1310" y="460" />
+        <di:waypoint x="1310" y="320" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_FinalCalcToPayRegister_di" bpmnElement="Flow_FinalCalcToPayRegister">
+        <di:waypoint x="1360" y="280" />
+        <di:waypoint x="1400" y="280" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_PayRegisterToLeadSignoff_di" bpmnElement="Flow_PayRegisterToLeadSignoff">
+        <di:waypoint x="1450" y="320" />
+        <di:waypoint x="1450" y="920" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_LeadSignoffToFunding_di" bpmnElement="Flow_LeadSignoffToFunding">
+        <di:waypoint x="1500" y="960" />
+        <di:waypoint x="1580" y="960" />
+        <di:waypoint x="1580" y="280" />
+        <di:waypoint x="1660" y="280" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_FundingToLeadReview_di" bpmnElement="Flow_FundingToLeadReview">
+        <di:waypoint x="1710" y="320" />
+        <di:waypoint x="1710" y="920" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_LeadReviewToDisbursement_di" bpmnElement="Flow_LeadReviewToDisbursement">
+        <di:waypoint x="1760" y="960" />
+        <di:waypoint x="1860" y="960" />
+        <di:waypoint x="1860" y="280" />
+        <di:waypoint x="1960" y="280" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_BankFilesToCollectAudit_di" bpmnElement="Flow_BankFilesToCollectAudit">
+        <di:waypoint x="2060" y="280" />
+        <di:waypoint x="2100" y="280" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_CollectAuditToManager_di" bpmnElement="Flow_CollectAuditToManager">
+        <di:waypoint x="2150" y="320" />
+        <di:waypoint x="2150" y="1120" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_ManagerToEnd_di" bpmnElement="Flow_ManagerToEnd">
+        <di:waypoint x="2200" y="1160" />
+        <di:waypoint x="2290" y="1160" />
+        <di:waypoint x="2290" y="298" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
