@@ -1,0 +1,429 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" 
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" 
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" 
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI" 
+                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" 
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+                  id="Definitions_1" 
+                  targetNamespace="http://bpmn.io/schema/bpmn" 
+                  exporter="Camunda Modeler" 
+                  exporterVersion="5.15.0">
+  
+  <!-- Messages -->
+  <bpmn:message id="Message_StartPayroll" name="StartPayrollMessage" />
+  <bpmn:message id="Message_NotifyAgent" name="NotifyAgentMessage" />
+  <bpmn:message id="Message_ProcessComplete" name="ProcessCompleteMessage" />
+  <bpmn:message id="Message_MonitoringUpdate" name="MonitoringUpdateMessage" />
+  <bpmn:message id="Message_TriggerNextCycle" name="TriggerNextCycleMessage" />
+  <bpmn:message id="Message_AgentComplete" name="AgentCompleteMessage" />
+  <bpmn:message id="Message_ErrorNotification" name="ErrorNotificationMessage" />
+  
+  <!-- Collaboration -->
+  <bpmn:collaboration id="Collaboration_PayrollAutomation">
+    <bpmn:participant id="Participant_PayrollSystem" name="Payroll Automation System" processRef="Process_PayrollAutomation" />
+    <bpmn:participant id="Participant_ExternalAgent" name="External Agent System" processRef="Process_ExternalAgent" />
+    <bpmn:participant id="Participant_MonitoringAgent" name="Monitoring Agent" processRef="Process_MonitoringAgent" />
+    <bpmn:participant id="Participant_ErrorHandler" name="Error Handler System" processRef="Process_ErrorHandler" />
+    
+    <!-- Message flows between participants -->
+    <bpmn:messageFlow id="MessageFlow_NotifyAgent" sourceRef="Event_NotifyExternalAgent" targetRef="Event_ReceiveNotification" />
+    <bpmn:messageFlow id="MessageFlow_ProcessComplete" sourceRef="Event_ProcessComplete" targetRef="Event_StartNextCycle" />
+    <bpmn:messageFlow id="MessageFlow_MonitoringUpdate" sourceRef="Event_SendMonitoringUpdate" targetRef="Event_ReceiveMonitoringUpdate" />
+    <bpmn:messageFlow id="MessageFlow_TriggerPayroll" sourceRef="Event_TriggerPayroll" targetRef="StartEvent_PayrollCycle" />
+    <bpmn:messageFlow id="MessageFlow_AgentComplete" sourceRef="Event_AgentComplete" targetRef="Event_ReceiveAgentComplete" />
+    <bpmn:messageFlow id="MessageFlow_ErrorNotification" sourceRef="Event_ErrorNotification" targetRef="Event_ReceiveError" />
+  </bpmn:collaboration>
+
+  <!-- Main Payroll Process -->
+  <bpmn:process id="Process_PayrollAutomation" name="Payroll Automation Process" isExecutable="true">
+    
+    <!-- Lane Definitions -->
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="Lane_AIAgent" name="AI Agent">
+        <bpmn:flowNodeRef>StartEvent_PayrollCycle</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_InitializePayroll</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>SubProcess_InputValidation</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>SubProcess_PayrollProcessing</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>SubProcess_FundingAndDisbursement</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Event_NotifyExternalAgent</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_CheckCycleType</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Event_ProcessComplete</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Event_SendMonitoringUpdate</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Event_ReceiveAgentComplete</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>BoundaryEvent_Timeout</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_HandleTimeout</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>BoundaryEvent_ErrorBoundary</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Event_ErrorNotification</bpmn:flowNodeRef>
+      </bpmn:lane>
+      
+      <bpmn:lane id="Lane_HumanTasks" name="Human Tasks">
+        <bpmn:flowNodeRef>Task_FinalApproval</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_EmergencyIntervention</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ManualReview</bpmn:flowNodeRef>
+      </bpmn:lane>
+      
+      <bpmn:lane id="Lane_SystemTasks" name="System Tasks">
+        <bpmn:flowNodeRef>Task_ArchiveResults</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_PrepareNextCycle</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_PayrollComplete</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_CycleError</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+
+    <!-- Start Event -->
+    <bpmn:startEvent id="StartEvent_PayrollCycle" name="Payroll Cycle Started">
+      <bpmn:outgoing>Flow_StartToInitialize</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDefinition_Start" messageRef="Message_StartPayroll" />
+    </bpmn:startEvent>
+
+    <!-- Initialize Payroll -->
+    <bpmn:serviceTask id="Task_InitializePayroll" name="Initialize Payroll Resources" zeebe:type="assignResources">
+      <bpmn:incoming>Flow_StartToInitialize</bpmn:incoming>
+      <bpmn:outgoing>Flow_InitializeToInputValidation</bpmn:outgoing>
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="initializePayroll" />
+        <zeebe:ioMapping>
+          <zeebe:input source="=payrollCycle" target="cycleId" />
+          <zeebe:input source="=resources" target="assignedResources" />
+          <zeebe:input source="=now()" target="processStartTime" />
+          <zeebe:output source="=initializationResult" target="initResult" />
+        </zeebe:ioMapping>
+        <zeebe:taskHeaders>
+          <zeebe:header key="timeout" value="PT30M" />
+          <zeebe:header key="retries" value="3" />
+        </zeebe:taskHeaders>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+
+    <!-- Timeout Boundary Event -->
+    <bpmn:boundaryEvent id="BoundaryEvent_Timeout" name="Timeout" attachedToRef="Task_InitializePayroll">
+      <bpmn:outgoing>Flow_TimeoutToHandle</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerEventDefinition_Timeout">
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">PT45M</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:boundaryEvent>
+
+    <!-- Error Boundary Event -->
+    <bpmn:boundaryEvent id="BoundaryEvent_ErrorBoundary" name="System Error" attachedToRef="Task_InitializePayroll">
+      <bpmn:outgoing>Flow_ErrorToNotification</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="ErrorEventDefinition_System" errorRef="Error_SystemError" />
+    </bpmn:boundaryEvent>
+
+    <!-- Error Notification -->
+    <bpmn:intermediateThrowEvent id="Event_ErrorNotification" name="Notify Error Handler">
+      <bpmn:incoming>Flow_ErrorToNotification</bpmn:incoming>
+      <bpmn:outgoing>Flow_ErrorToEnd</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDefinition_Error" messageRef="Message_ErrorNotification" />
+    </bpmn:intermediateThrowEvent>
+
+    <!-- Timeout Handler -->
+    <bpmn:serviceTask id="Task_HandleTimeout" name="Handle Timeout" zeebe:type="handleTimeout">
+      <bpmn:incoming>Flow_TimeoutToHandle</bpmn:incoming>
+      <bpmn:outgoing>Flow_TimeoutToEmergency</bpmn:outgoing>
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="handleTimeout" />
+        <zeebe:ioMapping>
+          <zeebe:input source="=cycleId" target="processId" />
+          <zeebe:input source="=now()" target="timeoutTime" />
+          <zeebe:output source="=timeoutResult" target="timeoutHandled" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+
+    <!-- Emergency Intervention -->
+    <bpmn:userTask id="Task_EmergencyIntervention" name="Emergency Intervention" zeebe:assignee="=emergencyUser">
+      <bpmn:incoming>Flow_TimeoutToEmergency</bpmn:incoming>
+      <bpmn:outgoing>Flow_EmergencyToEnd</bpmn:outgoing>
+      <bpmn:extensionElements>
+        <zeebe:formDefinition formId="emergencyForm" />
+        <zeebe:ioMapping>
+          <zeebe:input source="=timeoutHandled" target="emergencyData" />
+          <zeebe:output source="=emergencyAction" target="actionTaken" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+
+    <!-- Input Validation Subprocess -->
+    <bpmn:subProcess id="SubProcess_InputValidation" name="Input Validation Process" triggeredByEvent="false">
+      <bpmn:incoming>Flow_InitializeToInputValidation</bpmn:incoming>
+      <bpmn:outgoing>Flow_InputValidationToProcessing</bpmn:outgoing>
+      
+      <bpmn:startEvent id="StartEvent_InputValidation">
+        <bpmn:outgoing>Flow_StartInputValidation</bpmn:outgoing>
+      </bpmn:startEvent>
+      
+      <bpmn:serviceTask id="Task_ValidateInputs" name="AI Agent Validate Inputs" zeebe:type="validateInputs">
+        <bpmn:incoming>Flow_StartInputValidation</bpmn:incoming>
+        <bpmn:outgoing>Flow_ValidateToCheck</bpmn:outgoing>
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="validateInputs" />
+          <zeebe:ioMapping>
+            <zeebe:input source="=inputData" target="dataToValidate" />
+            <zeebe:input source="=validationRules" target="rules" />
+            <zeebe:output source="=validationResult" target="validationStatus" />
+            <zeebe:output source="=errorList" target="errors" />
+          </zeebe:ioMapping>
+        </zeebe:extensionElements>
+      </bpmn:serviceTask>
+      
+      <bpmn:exclusiveGateway id="Gateway_InputValidation" name="Validation Passed?" default="Flow_ValidationFailed">
+        <bpmn:incoming>Flow_ValidateToCheck</bpmn:incoming>
+        <bpmn:incoming>Flow_CorrectionComplete</bpmn:incoming>
+        <bpmn:outgoing>Flow_ValidationPassed</bpmn:outgoing>
+        <bpmn:outgoing>Flow_ValidationFailed</bpmn:outgoing>
+      </bpmn:exclusiveGateway>
+      
+      <bpmn:callActivity id="CallActivity_ErrorCorrection" name="Error Correction Process" calledElement="Process_ErrorCorrection">
+        <bpmn:incoming>Flow_ValidationFailed</bpmn:incoming>
+        <bpmn:outgoing>Flow_CorrectionComplete</bpmn:outgoing>
+        <bpmn:extensionElements>
+          <zeebe:calledElement processId="Process_ErrorCorrection" />
+          <zeebe:ioMapping>
+            <zeebe:input source="=errors" target="errorDetails" />
+            <zeebe:input source="=inputData" target="originalData" />
+            <zeebe:input source="=cycleId" target="processId" />
+            <zeebe:output source="=correctedData" target="inputData" />
+          </zeebe:ioMapping>
+        </zeebe:extensionElements>
+      </bpmn:callActivity>
+      
+      <bpmn:serviceTask id="Task_GenerateHeadcount" name="Generate Headcount Report" zeebe:type="generateHeadcount">
+        <bpmn:incoming>Flow_ValidationPassed</bpmn:incoming>
+        <bpmn:outgoing>Flow_HeadcountToEnd</bpmn:outgoing>
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="generateHeadcount" />
+          <zeebe:ioMapping>
+            <zeebe:input source="=validatedData" target="employeeData" />
+            <zeebe:output source="=headcountReport" target="headcountSummary" />
+          </zeebe:ioMapping>
+        </zeebe:extensionElements>
+      </bpmn:serviceTask>
+      
+      <bpmn:endEvent id="EndEvent_InputValidation">
+        <bpmn:incoming>Flow_HeadcountToEnd</bpmn:incoming>
+      </bpmn:endEvent>
+      
+      <!-- Sequence Flows for Input Validation -->
+      <bpmn:sequenceFlow id="Flow_StartInputValidation" sourceRef="StartEvent_InputValidation" targetRef="Task_ValidateInputs" />
+      <bpmn:sequenceFlow id="Flow_ValidateToCheck" sourceRef="Task_ValidateInputs" targetRef="Gateway_InputValidation" />
+      <bpmn:sequenceFlow id="Flow_ValidationPassed" name="Yes" sourceRef="Gateway_InputValidation" targetRef="Task_GenerateHeadcount">
+        <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=validationStatus = "passed"</bpmn:conditionExpression>
+      </bpmn:sequenceFlow>
+      <bpmn:sequenceFlow id="Flow_ValidationFailed" name="No" sourceRef="Gateway_InputValidation" targetRef="CallActivity_ErrorCorrection" />
+      <bpmn:sequenceFlow id="Flow_CorrectionComplete" sourceRef="CallActivity_ErrorCorrection" targetRef="Gateway_InputValidation" />
+      <bpmn:sequenceFlow id="Flow_HeadcountToEnd" sourceRef="Task_GenerateHeadcount" targetRef="EndEvent_InputValidation" />
+    </bpmn:subProcess>
+
+    <!-- Payroll Processing Subprocess -->
+    <bpmn:subProcess id="SubProcess_PayrollProcessing" name="Payroll Processing" triggeredByEvent="false">
+      <bpmn:incoming>Flow_InputValidationToProcessing</bpmn:incoming>
+      <bpmn:outgoing>Flow_ProcessingToFunding</bpmn:outgoing>
+      
+      <bpmn:startEvent id="StartEvent_Processing">
+        <bpmn:outgoing>Flow_StartProcessing</bpmn:outgoing>
+      </bpmn:startEvent>
+      
+      <bpmn:serviceTask id="Task_RunSimulation" name="Run Payroll Simulation" zeebe:type="runSimulation">
+        <bpmn:incoming>Flow_StartProcessing</bpmn:incoming>
+        <bpmn:outgoing>Flow_SimulationToGateway</bpmn:outgoing>
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="runPayrollSimulation" />
+          <zeebe:ioMapping>
+            <zeebe:input source="=headcountSummary" target="headcountData" />
+            <zeebe:input source="=payrollParameters" target="parameters" />
+            <zeebe:output source="=simulationResult" target="simResult" />
+            <zeebe:output source="=simulationErrors" target="simErrors" />
+          </zeebe:ioMapping>
+        </zeebe:extensionElements>
+      </bpmn:serviceTask>
+      
+      <bpmn:exclusiveGateway id="Gateway_SimulationCheck" name="Simulation Passed?" default="Flow_SimulationFailed">
+        <bpmn:incoming>Flow_SimulationToGateway</bpmn:incoming>
+        <bpmn:incoming>Flow_ProcessingCorrectionComplete</bpmn:incoming>
+        <bpmn:outgoing>Flow_SimulationPassed</bpmn:outgoing>
+        <bpmn:outgoing>Flow_SimulationFailed</bpmn:outgoing>
+      </bpmn:exclusiveGateway>
+      
+      <bpmn:callActivity id="CallActivity_ProcessingCorrection" name="Processing Error Correction" calledElement="Process_ErrorCorrection">
+        <bpmn:incoming>Flow_SimulationFailed</bpmn:incoming>
+        <bpmn:outgoing>Flow_ProcessingCorrectionComplete</bpmn:outgoing>
+        <bpmn:extensionElements>
+          <zeebe:calledElement processId="Process_ErrorCorrection" />
+          <zeebe:ioMapping>
+            <zeebe:input source="=simErrors" target="errorDetails" />
+            <zeebe:input source="=headcountData" target="originalData" />
+            <zeebe:input source="=cycleId" target="processId" />
+          </zeebe:ioMapping>
+        </zeebe:extensionElements>
+      </bpmn:callActivity>
+      
+      <bpmn:serviceTask id="Task_FinalCalculation" name="Run Final Payroll Calculation" zeebe:type="finalCalculation">
+        <bpmn:incoming>Flow_SimulationPassed</bpmn:incoming>
+        <bpmn:outgoing>Flow_FinalToPayRegister</bpmn:outgoing>
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="runFinalPayrollCalc" />
+          <zeebe:ioMapping>
+            <zeebe:input source="=simResult" target="simulationData" />
+            <zeebe:output source="=finalCalculations" target="payrollCalculations" />
+          </zeebe:ioMapping>
+        </zeebe:extensionElements>
+      </bpmn:serviceTask>
+      
+      <bpmn:serviceTask id="Task_GeneratePayRegister" name="Generate Pay Register" zeebe:type="generatePayRegister">
+        <bpmn:incoming>Flow_FinalToPayRegister</bpmn:incoming>
+        <bpmn:outgoing>Flow_PayRegisterToEnd</bpmn:outgoing>
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="generatePayRegister" />
+          <zeebe:ioMapping>
+            <zeebe:input source="=payrollCalculations" target="calculations" />
+            <zeebe:output source="=payRegister" target="generatedPayRegister" />
+          </zeebe:ioMapping>
+        </zeebe:extensionElements>
+      </bpmn:serviceTask>
+      
+      <bpmn:endEvent id="EndEvent_Processing">
+        <bpmn:incoming>Flow_PayRegisterToEnd</bpmn:incoming>
+      </bpmn:endEvent>
+      
+      <!-- Sequence Flows for Processing -->
+      <bpmn:sequenceFlow id="Flow_StartProcessing" sourceRef="StartEvent_Processing" targetRef="Task_RunSimulation" />
+      <bpmn:sequenceFlow id="Flow_SimulationToGateway" sourceRef="Task_RunSimulation" targetRef="Gateway_SimulationCheck" />
+      <bpmn:sequenceFlow id="Flow_SimulationPassed" name="Yes" sourceRef="Gateway_SimulationCheck" targetRef="Task_FinalCalculation">
+        <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=simResult = "passed"</bpmn:conditionExpression>
+      </bpmn:sequenceFlow>
+      <bpmn:sequenceFlow id="Flow_SimulationFailed" name="No" sourceRef="Gateway_SimulationCheck" targetRef="CallActivity_ProcessingCorrection" />
+      <bpmn:sequenceFlow id="Flow_ProcessingCorrectionComplete" sourceRef="CallActivity_ProcessingCorrection" targetRef="Gateway_SimulationCheck" />
+      <bpmn:sequenceFlow id="Flow_FinalToPayRegister" sourceRef="Task_FinalCalculation" targetRef="Task_GeneratePayRegister" />
+      <bpmn:sequenceFlow id="Flow_PayRegisterToEnd" sourceRef="Task_GeneratePayRegister" targetRef="EndEvent_Processing" />
+    </bpmn:subProcess>
+
+    <!-- Funding and Disbursement Subprocess -->
+    <bpmn:subProcess id="SubProcess_FundingAndDisbursement" name="Funding and Disbursement" triggeredByEvent="false">
+      <bpmn:incoming>Flow_ProcessingToFunding</bpmn:incoming>
+      <bpmn:outgoing>Flow_FundingToNotification</bpmn:outgoing>
+      
+      <bpmn:startEvent id="StartEvent_Funding">
+        <bpmn:outgoing>Flow_StartFunding</bpmn:outgoing>
+      </bpmn:startEvent>
+      
+      <bpmn:serviceTask id="Task_GenerateFundingInstructions" name="Generate Funding Instructions" zeebe:type="generateFunding">
+        <bpmn:incoming>Flow_StartFunding</bpmn:incoming>
+        <bpmn:outgoing>Flow_FundingToReview</bpmn:outgoing>
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="generateFundingInstructions" />
+          <zeebe:ioMapping>
+            <zeebe:input source="=generatedPayRegister" target="payRegister" />
+            <zeebe:output source="=fundingInstructions" target="fundingData" />
+          </zeebe:ioMapping>
+        </zeebe:extensionElements>
+      </bpmn:serviceTask>
+      
+      <bpmn:userTask id="Task_ReviewFunding" name="Review Funding Instructions" zeebe:assignee="=leadUser">
+        <bpmn:incoming>Flow_FundingToReview</bpmn:incoming>
+        <bpmn:outgoing>Flow_ReviewToBank</bpmn:outgoing>
+        <bpmn:extensionElements>
+          <zeebe:formDefinition formId="fundingReviewForm" />
+          <zeebe:ioMapping>
+            <zeebe:input source="=fundingData" target="reviewData" />
+            <zeebe:output source="=reviewApproval" target="approved" />
+          </zeebe:ioMapping>
+        </zeebe:extensionElements>
+      </bpmn:userTask>
+      
+      <bpmn:serviceTask id="Task_GenerateBankFiles" name="Generate Bank Files" zeebe:type="generateBankFiles">
+        <bpmn:incoming>Flow_ReviewToBank</bpmn:incoming>
+        <bpmn:outgoing>Flow_BankToAudit</bpmn:outgoing>
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="generateBankFiles" />
+          <zeebe:ioMapping>
+            <zeebe:input source="=fundingData" target="fundingInstructions" />
+            <zeebe:output source="=bankFiles" target="generatedBankFiles" />
+          </zeebe:ioMapping>
+        </zeebe:extensionElements>
+      </bpmn:serviceTask>
+      
+      <bpmn:serviceTask id="Task_CollectAuditReport" name="Collect Audit Report" zeebe:type="collectAudit">
+        <bpmn:incoming>Flow_BankToAudit</bpmn:incoming>
+        <bpmn:outgoing>Flow_AuditToEnd</bpmn:outgoing>
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="collectAuditReport" />
+          <zeebe:ioMapping>
+            <zeebe:input source="=generatedBankFiles" target="bankFiles" />
+            <zeebe:output source="=auditReport" target="auditData" />
+          </zeebe:ioMapping>
+        </zeebe:extensionElements>
+      </bpmn:serviceTask>
+      
+      <bpmn:endEvent id="EndEvent_Funding">
+        <bpmn:incoming>Flow_AuditToEnd</bpmn:incoming>
+      </bpmn:endEvent>
+      
+      <!-- Sequence Flows for Funding -->
+      <bpmn:sequenceFlow id="Flow_StartFunding" sourceRef="StartEvent_Funding" targetRef="Task_GenerateFundingInstructions" />
+      <bpmn:sequenceFlow id="Flow_FundingToReview" sourceRef="Task_GenerateFundingInstructions" targetRef="Task_ReviewFunding" />
+      <bpmn:sequenceFlow id="Flow_ReviewToBank" sourceRef="Task_ReviewFunding" targetRef="Task_GenerateBankFiles" />
+      <bpmn:sequenceFlow id="Flow_BankToAudit" sourceRef="Task_GenerateBankFiles" targetRef="Task_CollectAuditReport" />
+      <bpmn:sequenceFlow id="Flow_AuditToEnd" sourceRef="Task_CollectAuditReport" targetRef="EndEvent_Funding" />
+    </bpmn:subProcess>
+
+    <!-- Notification Event -->
+    <bpmn:intermediateThrowEvent id="Event_NotifyExternalAgent" name="Notify External Agent">
+      <bpmn:incoming>Flow_FundingToNotification</bpmn:incoming>
+      <bpmn:outgoing>Flow_NotificationToGateway</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDefinition_Notify" messageRef="Message_NotifyAgent" />
+    </bpmn:intermediateThrowEvent>
+
+    <!-- Gateway to check cycle type -->
+    <bpmn:exclusiveGateway id="Gateway_CheckCycleType" name="Main Cycle?" default="Flow_RegularCycle">
+      <bpmn:incoming>Flow_NotificationToGateway</bpmn:incoming>
+      <bpmn:outgoing>Flow_MainCycle</bpmn:outgoing>
+      <bpmn:outgoing>Flow_RegularCycle</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- Final Approval for main cycle -->
+    <bpmn:userTask id="Task_FinalApproval" name="Manager Final Approval" zeebe:assignee="=managerUser">
+      <bpmn:incoming>Flow_MainCycle</bpmn:incoming>
+      <bpmn:outgoing>Flow_ApprovalToComplete</bpmn:outgoing>
+      <bpmn:extensionElements>
+        <zeebe:formDefinition formId="finalApprovalForm" />
+        <zeebe:ioMapping>
+          <zeebe:input source="=auditData" target="auditReport" />
+          <zeebe:input source="=generatedPayRegister" target="payRegister" />
+          <zeebe:output source="=finalApproval" target="managerApproval" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+
+    <!-- Manual Review Task -->
+    <bpmn:userTask id="Task_ManualReview" name="Manual Review Required" zeebe:assignee="=reviewUser">
+      <bpmn:incoming>Flow_ApprovalToComplete</bpmn:incoming>
+      <bpmn:outgoing>Flow_ManualToMonitoring</bpmn:outgoing>
+      <bpmn:extensionElements>
+        <zeebe:formDefinition formId="manualReviewForm" />
+        <zeebe:ioMapping>
+          <zeebe:input source="=managerApproval" target="approvalData" />
+          <zeebe:output source="=reviewComplete" target="reviewResult" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+
+    <!-- Monitoring Update Event -->
+    <bpmn:intermediateThrowEvent id="Event_SendMonitoringUpdate" name="Send Monitoring Update">
+      <bpmn:incoming>Flow_ManualToMonitoring</bpmn:incoming>
+      <bpmn:incoming>Flow_RegularCycle</bpmn:incoming>
+      <bpmn:outgoing>Flow_MonitoringToWait</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDefinition_Monitoring" messageRef="Message_MonitoringUpdate" />
+    </bpmn:intermediateThrowEvent>
+
+    <!-- Wait for Agent Completion -->
+    <bpmn:intermediateCatchEvent id="Event_ReceiveAgentComplete" name="Wait for Agent Complete">
+      <bpmn:incoming>Flow_MonitoringToWait</bpmn:incoming>
+      <bpmn:outgoing>Flow_AgentCompleteToArchive</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDefinition_AgentComplete" messageRef="Message_AgentComplete" />
+    </bpmn:intermediateCatchEvent>
+
+    <!-- Archive Results -->
+    <bpmn:serviceTask id="Task_ArchiveResults" name="Archive Results" zeebe:type="archiveResults">
+      <bpmn:incoming>Flow_AgentCompleteToArchive</bpmn:incoming>
+      <bpmn:outgoing>Flow_ArchiveToPrepareC
