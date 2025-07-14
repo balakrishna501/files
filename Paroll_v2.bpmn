@@ -1,0 +1,680 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:modeler="http://camunda.org/schema/modeler/1.0" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Web Modeler" exporterVersion="42c698d" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.6">
+  <bpmn:process id="PayrollProcessingWorkflow" name="Payroll Processing Workflow" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1" name="Start Payroll Process (Jun 1)">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerEventDefinition_1">
+        <bpmn:timeDate>2023-06-01T00:00:00</bpmn:timeDate>
+      </bpmn:timerEventDefinition>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_InitiateAIWorkflow" />
+    <bpmn:serviceTask id="Task_InitiateAIWorkflow" name="Initiate AI Workflow" camunda:type="external" camunda:topic="initiate-ai-workflow">
+      <bpmn:extensionElements>
+        <camunda:properties>
+          <camunda:property name="simulationProcessingTime" value="PT5M" />
+          <camunda:property name="simulationWaitingTime" value="PT10M" />
+        </camunda:properties>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_InitiateAIWorkflow" targetRef="Task_DetermineResources" />
+    <bpmn:serviceTask id="Task_DetermineResources" name="AI: Determine Resources to Obtain" camunda:type="external" camunda:topic="determine-resources">
+      <bpmn:extensionElements>
+        <camunda:properties>
+          <camunda:property name="simulationProcessingTime" value="PT15M" />
+          <camunda:property name="simulationWaitingTime" value="PT5M" />
+        </camunda:properties>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_24</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_24" sourceRef="Task_DetermineResources" targetRef="Task_DetermineKeyCardPositions" />
+    <bpmn:serviceTask id="Task_DetermineKeyCardPositions" name="AI: Determine Control Keycard Interface Positions" camunda:type="external" camunda:topic="determine-keycard-positions">
+      <bpmn:extensionElements>
+        <camunda:properties>
+          <camunda:property name="simulationProcessingTime" value="PT20M" />
+          <camunda:property name="simulationWaitingTime" value="PT5M" />
+        </camunda:properties>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_24</bpmn:incoming>
+      <bpmn:outgoing>Flow_25</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_25" sourceRef="Task_DetermineKeyCardPositions" targetRef="Event_InputCutoff" />
+    <bpmn:intermediateCatchEvent id="Event_InputCutoff" name="Input Cutoff (Jun 12)">
+      <bpmn:incoming>Flow_25</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerEventDefinition_2">
+        <bpmn:timeDate>2023-06-12T00:00:00</bpmn:timeDate>
+      </bpmn:timerEventDefinition>
+    </bpmn:intermediateCatchEvent>
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Event_InputCutoff" targetRef="SubProcess_InputProcessing" />
+    <bpmn:subProcess id="SubProcess_InputProcessing" name="Input Processing">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+      <bpmn:startEvent id="Event_SubProcessStart">
+        <bpmn:outgoing>Flow_5</bpmn:outgoing>
+      </bpmn:startEvent>
+      <bpmn:sequenceFlow id="Flow_5" sourceRef="Event_SubProcessStart" targetRef="Task_AIBatchInputs" />
+      <bpmn:serviceTask id="Task_AIBatchInputs" name="AI: Batch Payroll Inputs to ADP" camunda:type="external" camunda:topic="batch-payroll-inputs">
+        <bpmn:extensionElements>
+          <camunda:properties>
+            <camunda:property name="simulationProcessingTime" value="PT30M" />
+            <camunda:property name="simulationWaitingTime" value="PT10M" />
+          </camunda:properties>
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_5</bpmn:incoming>
+        <bpmn:outgoing>Flow_6</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:sequenceFlow id="Flow_6" sourceRef="Task_AIBatchInputs" targetRef="Task_AIErrorIdentification" />
+      <bpmn:serviceTask id="Task_AIErrorIdentification" name="AI: Identify Errors" camunda:type="external" camunda:topic="identify-errors">
+        <bpmn:extensionElements>
+          <camunda:properties>
+            <camunda:property name="simulationProcessingTime" value="PT45M" />
+            <camunda:property name="simulationWaitingTime" value="PT15M" />
+          </camunda:properties>
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_6</bpmn:incoming>
+        <bpmn:outgoing>Flow_7</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:sequenceFlow id="Flow_7" sourceRef="Task_AIErrorIdentification" targetRef="Task_SpecialistReview" />
+      <bpmn:userTask id="Task_SpecialistReview" name="Specialist: Review and Correct" camunda:assignee="payroll-specialist">
+        <bpmn:extensionElements>
+          <camunda:properties>
+            <camunda:property name="simulationProcessingTime" value="PT1H" />
+            <camunda:property name="simulationWaitingTime" value="PT30M" />
+          </camunda:properties>
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_7</bpmn:incoming>
+        <bpmn:outgoing>Flow_26</bpmn:outgoing>
+      </bpmn:userTask>
+      <bpmn:exclusiveGateway id="Gateway_ErrorResolution" name="Error Resolution Method?">
+        <bpmn:incoming>Flow_26</bpmn:incoming>
+        <bpmn:outgoing>Flow_27</bpmn:outgoing>
+        <bpmn:outgoing>Flow_28</bpmn:outgoing>
+      </bpmn:exclusiveGateway>
+      <bpmn:sequenceFlow id="Flow_26" sourceRef="Task_SpecialistReview" targetRef="Gateway_ErrorResolution" />
+      <bpmn:sequenceFlow id="Flow_27" name="AI Correction" sourceRef="Gateway_ErrorResolution" targetRef="Task_AICorrection">
+        <bpmn:extensionElements>
+          <camunda:properties>
+            <camunda:property name="probability" value="0.7" />
+          </camunda:properties>
+        </bpmn:extensionElements>
+      </bpmn:sequenceFlow>
+      <bpmn:sequenceFlow id="Flow_28" name="Manual Correction" sourceRef="Gateway_ErrorResolution" targetRef="Task_ManualCorrection">
+        <bpmn:extensionElements>
+          <camunda:properties>
+            <camunda:property name="probability" value="0.3" />
+          </camunda:properties>
+        </bpmn:extensionElements>
+      </bpmn:sequenceFlow>
+      <bpmn:serviceTask id="Task_AICorrection" name="AI: Perform Correction" camunda:type="external" camunda:topic="ai-correction">
+        <bpmn:extensionElements>
+          <camunda:properties>
+            <camunda:property name="simulationProcessingTime" value="PT20M" />
+            <camunda:property name="simulationWaitingTime" value="PT5M" />
+          </camunda:properties>
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_27</bpmn:incoming>
+        <bpmn:outgoing>Flow_29</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:userTask id="Task_ManualCorrection" name="Specialist: Perform Manual Correction" camunda:assignee="payroll-specialist">
+        <bpmn:extensionElements>
+          <camunda:properties>
+            <camunda:property name="simulationProcessingTime" value="PT45M" />
+            <camunda:property name="simulationWaitingTime" value="PT15M" />
+          </camunda:properties>
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_28</bpmn:incoming>
+        <bpmn:outgoing>Flow_30</bpmn:outgoing>
+      </bpmn:userTask>
+      <bpmn:exclusiveGateway id="Gateway_MergeCorrectionPaths">
+        <bpmn:incoming>Flow_29</bpmn:incoming>
+        <bpmn:incoming>Flow_30</bpmn:incoming>
+        <bpmn:outgoing>Flow_31</bpmn:outgoing>
+      </bpmn:exclusiveGateway>
+      <bpmn:sequenceFlow id="Flow_29" sourceRef="Task_AICorrection" targetRef="Gateway_MergeCorrectionPaths" />
+      <bpmn:sequenceFlow id="Flow_30" sourceRef="Task_ManualCorrection" targetRef="Gateway_MergeCorrectionPaths" />
+      <bpmn:sequenceFlow id="Flow_31" sourceRef="Gateway_MergeCorrectionPaths" targetRef="Event_SubProcessEnd" />
+      <bpmn:endEvent id="Event_SubProcessEnd">
+        <bpmn:incoming>Flow_31</bpmn:incoming>
+      </bpmn:endEvent>
+    </bpmn:subProcess>
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="SubProcess_InputProcessing" targetRef="SubProcess_CreditProcessing" />
+    <bpmn:subProcess id="SubProcess_CreditProcessing" name="Credit Processing">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_32</bpmn:outgoing>
+      <bpmn:startEvent id="Event_CreditStart">
+        <bpmn:outgoing>Flow_33</bpmn:outgoing>
+      </bpmn:startEvent>
+      <bpmn:sequenceFlow id="Flow_33" sourceRef="Event_CreditStart" targetRef="Task_InitiateHeadcountReport" />
+      <bpmn:serviceTask id="Task_InitiateHeadcountReport" name="AI: Initiate Headcount Report" camunda:type="external" camunda:topic="initiate-headcount-report">
+        <bpmn:extensionElements>
+          <camunda:properties>
+            <camunda:property name="simulationProcessingTime" value="PT30M" />
+            <camunda:property name="simulationWaitingTime" value="PT10M" />
+          </camunda:properties>
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_33</bpmn:incoming>
+        <bpmn:outgoing>Flow_34</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:sequenceFlow id="Flow_34" sourceRef="Task_InitiateHeadcountReport" targetRef="Task_InitiateInputRecovery" />
+      <bpmn:serviceTask id="Task_InitiateInputRecovery" name="AI: Initiate Input Recovery" camunda:type="external" camunda:topic="initiate-input-recovery">
+        <bpmn:extensionElements>
+          <camunda:properties>
+            <camunda:property name="simulationProcessingTime" value="PT45M" />
+            <camunda:property name="simulationWaitingTime" value="PT15M" />
+          </camunda:properties>
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_34</bpmn:incoming>
+        <bpmn:outgoing>Flow_35</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:sequenceFlow id="Flow_35" sourceRef="Task_InitiateInputRecovery" targetRef="Task_AIErrorIdentificationCredit" />
+      <bpmn:serviceTask id="Task_AIErrorIdentificationCredit" name="AI: Identify Errors" camunda:type="external" camunda:topic="identify-errors-credit">
+        <bpmn:extensionElements>
+          <camunda:properties>
+            <camunda:property name="simulationProcessingTime" value="PT1H" />
+            <camunda:property name="simulationWaitingTime" value="PT20M" />
+          </camunda:properties>
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_35</bpmn:incoming>
+        <bpmn:outgoing>Flow_36</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:sequenceFlow id="Flow_36" sourceRef="Task_AIErrorIdentificationCredit" targetRef="Task_SpecialistReviewCredit" />
+      <bpmn:userTask id="Task_SpecialistReviewCredit" name="Specialist: Review and Correct" camunda:assignee="payroll-specialist">
+        <bpmn:extensionElements>
+          <camunda:properties>
+            <camunda:property name="simulationProcessingTime" value="PT1H30M" />
+            <camunda:property name="simulationWaitingTime" value="PT45M" />
+          </camunda:properties>
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_36</bpmn:incoming>
+        <bpmn:outgoing>Flow_37</bpmn:outgoing>
+      </bpmn:userTask>
+      <bpmn:endEvent id="Event_CreditEnd">
+        <bpmn:incoming>Flow_37</bpmn:incoming>
+      </bpmn:endEvent>
+      <bpmn:sequenceFlow id="Flow_37" sourceRef="Task_SpecialistReviewCredit" targetRef="Event_CreditEnd" />
+    </bpmn:subProcess>
+    <bpmn:sequenceFlow id="Flow_32" sourceRef="SubProcess_CreditProcessing" targetRef="Event_ValidationSignoff" />
+    <bpmn:intermediateCatchEvent id="Event_ValidationSignoff" name="Validation Signoff (Jun 14)">
+      <bpmn:incoming>Flow_32</bpmn:incoming>
+      <bpmn:outgoing>Flow_9</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerEventDefinition_3">
+        <bpmn:timeDate>2023-06-14T00:00:00</bpmn:timeDate>
+      </bpmn:timerEventDefinition>
+    </bpmn:intermediateCatchEvent>
+    <bpmn:sequenceFlow id="Flow_9" sourceRef="Event_ValidationSignoff" targetRef="SubProcess_ValidationProcessing" />
+    <bpmn:subProcess id="SubProcess_ValidationProcessing" name="Validation Processing">
+      <bpmn:incoming>Flow_9</bpmn:incoming>
+      <bpmn:outgoing>Flow_11</bpmn:outgoing>
+      <bpmn:startEvent id="Event_ValidationStart">
+        <bpmn:outgoing>Flow_38</bpmn:outgoing>
+      </bpmn:startEvent>
+      <bpmn:sequenceFlow id="Flow_38" sourceRef="Event_ValidationStart" targetRef="Task_AIRunPayrollSimulation" />
+      <bpmn:serviceTask id="Task_AIRunPayrollSimulation" name="AI: Run Payroll Simulation" camunda:type="external" camunda:topic="run-payroll-simulation">
+        <bpmn:extensionElements>
+          <camunda:properties>
+            <camunda:property name="simulationProcessingTime" value="PT2H" />
+            <camunda:property name="simulationWaitingTime" value="PT30M" />
+          </camunda:properties>
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_38</bpmn:incoming>
+        <bpmn:outgoing>Flow_39</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:sequenceFlow id="Flow_39" sourceRef="Task_AIRunPayrollSimulation" targetRef="Task_AIIdentifyErrors" />
+      <bpmn:serviceTask id="Task_AIIdentifyErrors" name="AI: Identify Errors" camunda:type="external" camunda:topic="identify-errors-validation">
+        <bpmn:extensionElements>
+          <camunda:properties>
+            <camunda:property name="simulationProcessingTime" value="PT1H30M" />
+            <camunda:property name="simulationWaitingTime" value="PT20M" />
+          </camunda:properties>
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_39</bpmn:incoming>
+        <bpmn:outgoing>Flow_40</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:sequenceFlow id="Flow_40" sourceRef="Task_AIIdentifyErrors" targetRef="Task_SpecialistReviewValidation" />
+      <bpmn:userTask id="Task_SpecialistReviewValidation" name="Specialist: Review and Correct" camunda:assignee="payroll-specialist">
+        <bpmn:extensionElements>
+          <camunda:properties>
+            <camunda:property name="simulationProcessingTime" value="PT2H" />
+            <camunda:property name="simulationWaitingTime" value="PT1H" />
+          </camunda:properties>
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_40</bpmn:incoming>
+        <bpmn:outgoing>Flow_41</bpmn:outgoing>
+      </bpmn:userTask>
+      <bpmn:endEvent id="Event_ValidationEnd">
+        <bpmn:incoming>Flow_41</bpmn:incoming>
+      </bpmn:endEvent>
+      <bpmn:sequenceFlow id="Flow_41" sourceRef="Task_SpecialistReviewValidation" targetRef="Event_ValidationEnd" />
+    </bpmn:subProcess>
+    <bpmn:sequenceFlow id="Flow_11" sourceRef="SubProcess_ValidationProcessing" targetRef="Event_ProcessingStart" />
+    <bpmn:intermediateCatchEvent id="Event_ProcessingStart" name="Processing Start (Jun 15)">
+      <bpmn:incoming>Flow_11</bpmn:incoming>
+      <bpmn:outgoing>Flow_12</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerEventDefinition_4">
+        <bpmn:timeDate>2023-06-15T00:00:00</bpmn:timeDate>
+      </bpmn:timerEventDefinition>
+    </bpmn:intermediateCatchEvent>
+    <bpmn:sequenceFlow id="Flow_12" sourceRef="Event_ProcessingStart" targetRef="SubProcess_PayrollProcessing" />
+    <bpmn:subProcess id="SubProcess_PayrollProcessing" name="Payroll Processing">
+      <bpmn:incoming>Flow_12</bpmn:incoming>
+      <bpmn:outgoing>Flow_13</bpmn:outgoing>
+      <bpmn:startEvent id="Event_ProcessingSubStart">
+        <bpmn:outgoing>Flow_14</bpmn:outgoing>
+      </bpmn:startEvent>
+      <bpmn:sequenceFlow id="Flow_14" sourceRef="Event_ProcessingSubStart" targetRef="Task_AIPayrollSimulation" />
+      <bpmn:serviceTask id="Task_AIPayrollSimulation" name="AI: Run Payroll Simulation" camunda:type="external" camunda:topic="run-payroll-simulation">
+        <bpmn:extensionElements>
+          <camunda:properties>
+            <camunda:property name="simulationProcessingTime" value="PT3H" />
+            <camunda:property name="simulationWaitingTime" value="PT1H" />
+          </camunda:properties>
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_14</bpmn:incoming>
+        <bpmn:outgoing>Flow_15</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:sequenceFlow id="Flow_15" sourceRef="Task_AIPayrollSimulation" targetRef="Task_AITestPayroll" />
+      <bpmn:serviceTask id="Task_AITestPayroll" name="AI: Run Test Payroll" camunda:type="external" camunda:topic="run-test-payroll">
+        <bpmn:extensionElements>
+          <camunda:properties>
+            <camunda:property name="simulationProcessingTime" value="PT4H" />
+            <camunda:property name="simulationWaitingTime" value="PT2H" />
+          </camunda:properties>
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_15</bpmn:incoming>
+        <bpmn:outgoing>Flow_16</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:sequenceFlow id="Flow_16" sourceRef="Task_AITestPayroll" targetRef="Task_AIGeneratePayRegister" />
+      <bpmn:serviceTask id="Task_AIGeneratePayRegister" name="AI: Generate Pay Register" camunda:type="external" camunda:topic="generate-pay-register">
+        <bpmn:extensionElements>
+          <camunda:properties>
+            <camunda:property name="simulationProcessingTime" value="PT2H" />
+            <camunda:property name="simulationWaitingTime" value="PT30M" />
+          </camunda:properties>
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_16</bpmn:incoming>
+        <bpmn:outgoing>Flow_17</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:endEvent id="Event_ProcessingSubEnd">
+        <bpmn:incoming>Flow_17</bpmn:incoming>
+      </bpmn:endEvent>
+      <bpmn:sequenceFlow id="Flow_17" sourceRef="Task_AIGeneratePayRegister" targetRef="Event_ProcessingSubEnd" />
+    </bpmn:subProcess>
+    <bpmn:sequenceFlow id="Flow_13" sourceRef="SubProcess_PayrollProcessing" targetRef="Event_FundingStart" />
+    <bpmn:intermediateCatchEvent id="Event_FundingStart" name="Funding Start (Jun 24)">
+      <bpmn:incoming>Flow_13</bpmn:incoming>
+      <bpmn:outgoing>Flow_18</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerEventDefinition_5">
+        <bpmn:timeDate>2023-06-24T00:00:00</bpmn:timeDate>
+      </bpmn:timerEventDefinition>
+    </bpmn:intermediateCatchEvent>
+    <bpmn:sequenceFlow id="Flow_18" sourceRef="Event_FundingStart" targetRef="Task_AIGenerateFundingInstructions" />
+    <bpmn:serviceTask id="Task_AIGenerateFundingInstructions" name="AI: Generate Funding Instructions" camunda:type="external" camunda:topic="generate-funding-instructions">
+      <bpmn:extensionElements>
+        <camunda:properties>
+          <camunda:property name="simulationProcessingTime" value="PT1H30M" />
+          <camunda:property name="simulationWaitingTime" value="PT30M" />
+        </camunda:properties>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_18</bpmn:incoming>
+      <bpmn:outgoing>Flow_19</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_19" sourceRef="Task_AIGenerateFundingInstructions" targetRef="Task_LeadReviewFunding" />
+    <bpmn:userTask id="Task_LeadReviewFunding" name="Lead: Review and Sign Off Funding" camunda:assignee="payroll-lead">
+      <bpmn:extensionElements>
+        <camunda:properties>
+          <camunda:property name="simulationProcessingTime" value="PT2H" />
+          <camunda:property name="simulationWaitingTime" value="PT1H" />
+        </camunda:properties>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_19</bpmn:incoming>
+      <bpmn:outgoing>Flow_20</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="Flow_20" sourceRef="Task_LeadReviewFunding" targetRef="Task_AIGenerateBankFiles" />
+    <bpmn:serviceTask id="Task_AIGenerateBankFiles" name="AI: Generate Bank Files" camunda:type="external" camunda:topic="generate-bank-files">
+      <bpmn:extensionElements>
+        <camunda:properties>
+          <camunda:property name="simulationProcessingTime" value="PT1H" />
+          <camunda:property name="simulationWaitingTime" value="PT15M" />
+        </camunda:properties>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_20</bpmn:incoming>
+      <bpmn:outgoing>Flow_21</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_21" sourceRef="Task_AIGenerateBankFiles" targetRef="Task_AICollectAuditReport" />
+    <bpmn:serviceTask id="Task_AICollectAuditReport" name="AI: Collect Audit Report" camunda:type="external" camunda:topic="collect-audit-report">
+      <bpmn:extensionElements>
+        <camunda:properties>
+          <camunda:property name="simulationProcessingTime" value="PT45M" />
+          <camunda:property name="simulationWaitingTime" value="PT15M" />
+        </camunda:properties>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_21</bpmn:incoming>
+      <bpmn:outgoing>Flow_22</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_22" sourceRef="Task_AICollectAuditReport" targetRef="Task_ManagerReviewAudit" />
+    <bpmn:userTask id="Task_ManagerReviewAudit" name="Manager: Review Monthly Audit" camunda:assignee="payroll-manager">
+      <bpmn:extensionElements>
+        <camunda:properties>
+          <camunda:property name="simulationProcessingTime" value="PT3H" />
+          <camunda:property name="simulationWaitingTime" value="PT1H30M" />
+        </camunda:properties>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_22</bpmn:incoming>
+      <bpmn:outgoing>Flow_23</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:endEvent id="Event_PayrollComplete" name="Payroll Process Complete">
+      <bpmn:incoming>Flow_23</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_23" sourceRef="Task_ManagerReviewAudit" targetRef="Event_PayrollComplete" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_PayrollProcessingWorkflow">
+    <bpmndi:BPMNPlane id="BPMNPlane_PayrollProcessingWorkflow" bpmnElement="PayrollProcessingWorkflow">
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="167" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_InitiateAIWorkflow_di" bpmnElement="Task_InitiateAIWorkflow">
+        <dc:Bounds x="285" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_DetermineResources_di" bpmnElement="Task_DetermineResources">
+        <dc:Bounds x="435" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_DetermineKeyCardPositions_di" bpmnElement="Task_DetermineKeyCardPositions">
+        <dc:Bounds x="585" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_InputCutoff_di" bpmnElement="Event_InputCutoff">
+        <dc:Bounds x="767" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_ValidationSignoff_di" bpmnElement="Event_ValidationSignoff">
+        <dc:Bounds x="1217" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_ProcessingStart_di" bpmnElement="Event_ProcessingStart">
+        <dc:Bounds x="1517" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_FundingStart_di" bpmnElement="Event_FundingStart">
+        <dc:Bounds x="1817" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_AIGenerateFundingInstructions_di" bpmnElement="Task_AIGenerateFundingInstructions">
+        <dc:Bounds x="1935" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_LeadReviewFunding_di" bpmnElement="Task_LeadReviewFunding">
+        <dc:Bounds x="2085" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_AIGenerateBankFiles_di" bpmnElement="Task_AIGenerateBankFiles">
+        <dc:Bounds x="2235" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_AICollectAuditReport_di" bpmnElement="Task_AICollectAuditReport">
+        <dc:Bounds x="2385" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ManagerReviewAudit_di" bpmnElement="Task_ManagerReviewAudit">
+        <dc:Bounds x="2535" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_PayrollComplete_di" bpmnElement="Event_PayrollComplete">
+        <dc:Bounds x="2717" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SubProcess_InputProcessing_di" bpmnElement="SubProcess_InputProcessing">
+        <dc:Bounds x="885" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SubProcess_CreditProcessing_di" bpmnElement="SubProcess_CreditProcessing">
+        <dc:Bounds x="1035" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SubProcess_ValidationProcessing_di" bpmnElement="SubProcess_ValidationProcessing">
+        <dc:Bounds x="1335" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SubProcess_PayrollProcessing_di" bpmnElement="SubProcess_PayrollProcessing">
+        <dc:Bounds x="1635" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="203" y="120" />
+        <di:waypoint x="285" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="385" y="120" />
+        <di:waypoint x="435" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_24_di" bpmnElement="Flow_24">
+        <di:waypoint x="535" y="120" />
+        <di:waypoint x="585" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_25_di" bpmnElement="Flow_25">
+        <di:waypoint x="685" y="120" />
+        <di:waypoint x="767" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <di:waypoint x="803" y="120" />
+        <di:waypoint x="885" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <di:waypoint x="985" y="120" />
+        <di:waypoint x="1035" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_32_di" bpmnElement="Flow_32">
+        <di:waypoint x="1135" y="120" />
+        <di:waypoint x="1217" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_9_di" bpmnElement="Flow_9">
+        <di:waypoint x="1253" y="120" />
+        <di:waypoint x="1335" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_11_di" bpmnElement="Flow_11">
+        <di:waypoint x="1435" y="120" />
+        <di:waypoint x="1517" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_12_di" bpmnElement="Flow_12">
+        <di:waypoint x="1553" y="120" />
+        <di:waypoint x="1635" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_13_di" bpmnElement="Flow_13">
+        <di:waypoint x="1735" y="120" />
+        <di:waypoint x="1817" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_18_di" bpmnElement="Flow_18">
+        <di:waypoint x="1853" y="120" />
+        <di:waypoint x="1935" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_19_di" bpmnElement="Flow_19">
+        <di:waypoint x="2035" y="120" />
+        <di:waypoint x="2085" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_20_di" bpmnElement="Flow_20">
+        <di:waypoint x="2185" y="120" />
+        <di:waypoint x="2235" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_21_di" bpmnElement="Flow_21">
+        <di:waypoint x="2335" y="120" />
+        <di:waypoint x="2385" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_22_di" bpmnElement="Flow_22">
+        <di:waypoint x="2485" y="120" />
+        <di:waypoint x="2535" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_23_di" bpmnElement="Flow_23">
+        <di:waypoint x="2635" y="120" />
+        <di:waypoint x="2717" y="120" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_SubProcess_PayrollProcessing">
+    <bpmndi:BPMNPlane id="BPMNPlane_SubProcess_PayrollProcessing" bpmnElement="SubProcess_PayrollProcessing">
+      <bpmndi:BPMNShape id="Event_ProcessingSubStart_di" bpmnElement="Event_ProcessingSubStart">
+        <dc:Bounds x="57" y="52" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_AIPayrollSimulation_di" bpmnElement="Task_AIPayrollSimulation">
+        <dc:Bounds x="175" y="30" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_AITestPayroll_di" bpmnElement="Task_AITestPayroll">
+        <dc:Bounds x="325" y="30" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_AIGeneratePayRegister_di" bpmnElement="Task_AIGeneratePayRegister">
+        <dc:Bounds x="475" y="30" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_ProcessingSubEnd_di" bpmnElement="Event_ProcessingSubEnd">
+        <dc:Bounds x="657" y="52" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_14_di" bpmnElement="Flow_14">
+        <di:waypoint x="93" y="70" />
+        <di:waypoint x="175" y="70" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_15_di" bpmnElement="Flow_15">
+        <di:waypoint x="275" y="70" />
+        <di:waypoint x="325" y="70" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_16_di" bpmnElement="Flow_16">
+        <di:waypoint x="425" y="70" />
+        <di:waypoint x="475" y="70" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_17_di" bpmnElement="Flow_17">
+        <di:waypoint x="575" y="70" />
+        <di:waypoint x="657" y="70" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_SubProcess_ValidationProcessing">
+    <bpmndi:BPMNPlane id="BPMNPlane_SubProcess_ValidationProcessing" bpmnElement="SubProcess_ValidationProcessing">
+      <bpmndi:BPMNShape id="Event_ValidationStart_di" bpmnElement="Event_ValidationStart">
+        <dc:Bounds x="57" y="52" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_AIRunPayrollSimulation_di" bpmnElement="Task_AIRunPayrollSimulation">
+        <dc:Bounds x="175" y="30" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_AIIdentifyErrors_di" bpmnElement="Task_AIIdentifyErrors">
+        <dc:Bounds x="325" y="30" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_SpecialistReviewValidation_di" bpmnElement="Task_SpecialistReviewValidation">
+        <dc:Bounds x="475" y="30" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_ValidationEnd_di" bpmnElement="Event_ValidationEnd">
+        <dc:Bounds x="657" y="52" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_38_di" bpmnElement="Flow_38">
+        <di:waypoint x="93" y="70" />
+        <di:waypoint x="175" y="70" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_39_di" bpmnElement="Flow_39">
+        <di:waypoint x="275" y="70" />
+        <di:waypoint x="325" y="70" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_40_di" bpmnElement="Flow_40">
+        <di:waypoint x="425" y="70" />
+        <di:waypoint x="475" y="70" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_41_di" bpmnElement="Flow_41">
+        <di:waypoint x="575" y="70" />
+        <di:waypoint x="657" y="70" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_SubProcess_CreditProcessing">
+    <bpmndi:BPMNPlane id="BPMNPlane_SubProcess_CreditProcessing" bpmnElement="SubProcess_CreditProcessing">
+      <bpmndi:BPMNShape id="Event_CreditStart_di" bpmnElement="Event_CreditStart">
+        <dc:Bounds x="57" y="52" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_InitiateHeadcountReport_di" bpmnElement="Task_InitiateHeadcountReport">
+        <dc:Bounds x="175" y="30" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_InitiateInputRecovery_di" bpmnElement="Task_InitiateInputRecovery">
+        <dc:Bounds x="325" y="30" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_AIErrorIdentificationCredit_di" bpmnElement="Task_AIErrorIdentificationCredit">
+        <dc:Bounds x="475" y="30" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_SpecialistReviewCredit_di" bpmnElement="Task_SpecialistReviewCredit">
+        <dc:Bounds x="625" y="30" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_CreditEnd_di" bpmnElement="Event_CreditEnd">
+        <dc:Bounds x="807" y="52" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_33_di" bpmnElement="Flow_33">
+        <di:waypoint x="93" y="70" />
+        <di:waypoint x="175" y="70" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_34_di" bpmnElement="Flow_34">
+        <di:waypoint x="275" y="70" />
+        <di:waypoint x="325" y="70" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_35_di" bpmnElement="Flow_35">
+        <di:waypoint x="425" y="70" />
+        <di:waypoint x="475" y="70" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_36_di" bpmnElement="Flow_36">
+        <di:waypoint x="575" y="70" />
+        <di:waypoint x="625" y="70" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_37_di" bpmnElement="Flow_37">
+        <di:waypoint x="725" y="70" />
+        <di:waypoint x="807" y="70" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_SubProcess_InputProcessing">
+    <bpmndi:BPMNPlane id="BPMNPlane_SubProcess_InputProcessing" bpmnElement="SubProcess_InputProcessing">
+      <bpmndi:BPMNShape id="Event_SubProcessStart_di" bpmnElement="Event_SubProcessStart">
+        <dc:Bounds x="57" y="52" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_AIBatchInputs_di" bpmnElement="Task_AIBatchInputs">
+        <dc:Bounds x="175" y="30" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_AIErrorIdentification_di" bpmnElement="Task_AIErrorIdentification">
+        <dc:Bounds x="325" y="30" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_SpecialistReview_di" bpmnElement="Task_SpecialistReview">
+        <dc:Bounds x="475" y="30" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_ErrorResolution_di" bpmnElement="Gateway_ErrorResolution" isMarkerVisible="true">
+        <dc:Bounds x="650" y="45" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_AICorrection_di" bpmnElement="Task_AICorrection">
+        <dc:Bounds x="775" y="30" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ManualCorrection_di" bpmnElement="Task_ManualCorrection">
+        <dc:Bounds x="775" y="170" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_MergeCorrectionPaths_di" bpmnElement="Gateway_MergeCorrectionPaths" isMarkerVisible="true">
+        <dc:Bounds x="950" y="45" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_SubProcessEnd_di" bpmnElement="Event_SubProcessEnd">
+        <dc:Bounds x="1107" y="52" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
+        <di:waypoint x="93" y="70" />
+        <di:waypoint x="175" y="70" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6">
+        <di:waypoint x="275" y="70" />
+        <di:waypoint x="325" y="70" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_7_di" bpmnElement="Flow_7">
+        <di:waypoint x="425" y="70" />
+        <di:waypoint x="475" y="70" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_26_di" bpmnElement="Flow_26">
+        <di:waypoint x="575" y="70" />
+        <di:waypoint x="650" y="70" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_27_di" bpmnElement="Flow_27">
+        <di:waypoint x="700" y="70" />
+        <di:waypoint x="775" y="70" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_28_di" bpmnElement="Flow_28">
+        <di:waypoint x="675" y="95" />
+        <di:waypoint x="675" y="210" />
+        <di:waypoint x="775" y="210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_29_di" bpmnElement="Flow_29">
+        <di:waypoint x="875" y="70" />
+        <di:waypoint x="950" y="70" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_30_di" bpmnElement="Flow_30">
+        <di:waypoint x="875" y="210" />
+        <di:waypoint x="975" y="210" />
+        <di:waypoint x="975" y="95" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_31_di" bpmnElement="Flow_31">
+        <di:waypoint x="1000" y="70" />
+        <di:waypoint x="1107" y="70" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
