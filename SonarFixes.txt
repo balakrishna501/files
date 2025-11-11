@@ -1,0 +1,125 @@
+import requests
+import os
+
+# --- Configuration ---
+# !! Update these variables with your own values !!
+SONAR_URL = "https://sonarqube.your-company.com"  # Your SonarQube server URL
+SONAR_TOKEN = os.environ.get("SONAR_TOKEN")  # BEST PRACTICE: Load token from environment variable
+                                             # On Windows: set SONAR_TOKEN=your_token_here
+                                             # On Linux/macOS: export SONAR_TOKEN=your_token_here
+# ---------------------
+
+def get_and_sort_sonarqube_issues(project_key: str, file_path: str) -> list:
+    """
+    Fetches all open issues for a specific file from SonarQube and sorts
+    them by line number in descending order.
+
+    Args:
+        project_key: The key of your project in SonarQube (e.g., "my-java-project")
+        file_path: The path to the file *within the project* (e.g., "src/main/java/com/MyClass.java")
+
+    Returns:
+        A list of issue dictionaries, sorted by line number from highest to lowest.
+        Returns an empty list if an error occurs or no issues are found.
+    """
+    
+    # In SonarQube, a file is a "component." Its key is a combination of
+    # the project key and the file path.
+    component_key = f"{project_key}:{file_path}"
+    
+    api_endpoint = f"{SONAR_URL}/api/issues/search"
+    
+    # We must use an authentication token
+    if not SONAR_TOKEN:
+        print("Error: SONAR_TOKEN environment variable is not set.")
+        print("Please generate a token in SonarQube (My Account > Security) and set it.")
+        return []
+
+    # Authentication is passed via HTTP Basic Auth, with the token as the username
+    # and an empty password.
+    auth = (SONAR_TOKEN, "")
+    
+    all_issues = []
+    page = 1
+    page_size = 500  # Max page size allowed by SonarQube
+
+    while True:
+        try:
+            params = {
+                "componentKeys": component_key, # Filter by our specific file
+                "statuses": "OPEN",             # Only get issues that need fixing
+                "ps": page_size,                # Set page size (500 is max)
+                "p": page                       # The current page number
+            }
+
+            response = requests.get(api_endpoint, auth=auth, params=params, timeout=10)
+            response.raise_for_status()  # Raise an error for bad responses (4xx, 5xx)
+            
+            data = response.json()
+            issues_on_page = data.get("issues", [])
+            
+            if not issues_on_page:
+                break  # No more issues to fetch
+
+            all_issues.extend(issues_on_page)
+
+            # Check if we need to fetch another page
+            total_issues = data["paging"]["total"]
+            if (page * page_size) >= total_issues:
+                break  # We have fetched all pages
+            else:
+                page += 1 # Go to the next page
+
+        except requests.exceptions.HTTPError as http_err:
+            print(f"HTTP error occurred: {http_err} - Check your URL, Project Key, and Token.")
+            return []
+        except requests.exceptions.ConnectionError as conn_err:
+            print(f"Connection error: {conn_err} - Is your SONAR_URL ('{SONAR_URL}') correct?")
+            return []
+        except requests.exceptions.RequestException as err:
+            print(f"An error occurred: {err}")
+            return []
+
+    print(f"--- Found {len(all_issues)} total open issues for {file_path} ---")
+
+    # This is the most important part for your use case.
+    # We sort the list of issues based on the 'line' number.
+    # `reverse=True` means it sorts from HIGHEST to LOWEST (e.g., 50, 40, 10).
+    try:
+        sorted_issues = sorted(all_issues, key=lambda issue: issue.get('line', 0), reverse=True)
+        return sorted_issues
+        
+    except KeyError:
+        print("Error: Could not sort issues. An issue was missing the 'line' field.")
+        return []
+
+# --- --- --- --- ---
+#  EXAMPLE USAGE
+# --- --- --- --- ---
+if __name__ == "__main__":
+    
+    # --- --- --- --- --- --- --- --- --- --- --- --- ---
+    # !! UPDATE these two variables for your test !!
+    # --- --- --- --- --- --- --- --- --- --- --- --- ---
+    MY_PROJECT_KEY = "my-awesome-project"
+    MY_FILE_PATH = "src/main/java/com/mycompany/app/utils/StringUtils.java"
+
+    if SONAR_TOKEN == "your_token_here" or SONAR_URL == "https://sonarqube.your-company.com":
+        print("="*50)
+        print("ERROR: Please update SONAR_URL and SONAR_TOKEN")
+        print("       inside the script to run this example.")
+        print("="*50)
+    else:
+        # Here is the function call
+        sorted_issues_list = get_and_sort_sonarqube_issues(MY_PROJECT_KEY, MY_FILE_PATH)
+        
+        if sorted_issues_list:
+            print(f"\nSuccessfully fetched and sorted {len(sorted_issues_list)} issues.")
+            print("Processing order (from end-of-file to start):")
+            
+            # Print the issues in the order you will process them
+            for issue in sorted_issues_list:
+                line = issue.get('line', 'N/A')
+                message = issue.get('message', 'No message')
+                rule = issue.get('rule', 'N/A')
+                print(f"  - [Line {line}] {message} (Rule: {rule})")
