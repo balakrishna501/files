@@ -123,3 +123,33 @@ if __name__ == "__main__":
                 message = issue.get('message', 'No message')
                 rule = issue.get('rule', 'N/A')
                 print(f"  - [Line {line}] {message} (Rule: {rule})")
+# --- Your main automation script (pseudo-code) ---
+
+# 1. Load the original code from the file
+file_path = "src/main/java/com/mycompany/app/utils/StringUtils.java"
+project_key = "my-awesome-project"
+
+with open(file_path, 'r') as f:
+    current_code = f.read()
+
+# 2. Get and sort the issues using the function above
+sorted_issues = get_and_sort_sonarqube_issues(project_key, file_path)
+
+# 3. Loop through the (already sorted) issues
+for issue in sorted_issues:
+    print(f"--- Fixing issue on line {issue.get('line')}... ---")
+    
+    # Construct the prompt for the LLM
+    prompt = create_prompt_for_llm(current_code, issue)
+    
+    # Call the LLM and get the *entire* file content back
+    fixed_code = call_llm_api(prompt)
+    
+    # This is the key: update the code variable for the *next* loop iteration
+    current_code = fixed_code
+
+# 4. After all loops are done, save the final, fully-fixed code
+with open(file_path, 'w') as f:
+    f.write(current_code)
+
+print("All issues fixed. File saved.")
