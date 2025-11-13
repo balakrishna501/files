@@ -153,3 +153,7 @@ with open(file_path, 'w') as f:
     f.write(current_code)
 
 print("All issues fixed. File saved.")
+
+
+Do not send all files at once. Instead, store your codebase in a vector database after splitting the files into smaller, manageable chunks.
+When the agent needs information about a specific part of the code (e.g., to rewrite a function), it retrieves only the relevant code snippets from the database and uses them as context for the prompt
