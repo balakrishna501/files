@@ -502,4 +502,23 @@ One module can contain many resources and sub-modules
 Resources can have multiple permissions (READ, WRITE, DELETE, etc.)
 Roles can inherit from parent roles and have multiple permission assignments
 
+
 This diagram complements the documentation by providing a visual representation of how all the RBAC components interconnect. The structure supports complex scenarios like role hierarchies, permission inheritance, and multi-application environments while maintaining data integrity through proper foreign key relationships.
+
+
+Lets Enhance this UI(refer existing developer focused ui and extend more)  like nodes actions in n8n design ..
+
+
+
+Requirements:
+
+1. while creating workflow in workflow builder we will have to configure Job triggers and each and every job trigger should have play button and when we click on the play button we should call the standalon job api with required params and triggerJson ect..refer standalon job api in nex-gen job scheduler.
+
+2.on workflow Builder when user clicks on config job button in canvas we should have drop down to select list of actions associated to that job on right panel and we should also have left panel which will diplay the output of Predessor job in the workflow (that we got from last standalon job exection api ** runStandalon)
+
+
+2.We should have screen to configure the Actions for The List of Job Triggers
+
+3.Each and Every Job Trigger's will have associated actions and select from right panel and also from left panel we should see the output of  responsedata attribute and parse the Json show like elemenets and we should be able drag and drog the json lelments from righ to left panel on configure if it have the dependency and it should be formed like 
+
+4.Each And Every Action is nothing but Trigger Json to the wokflow job trigger 
