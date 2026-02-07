@@ -1,0 +1,53 @@
+You are a senior software architect with 20+ years of experience
+designing enterprise payroll and compliance systems.
+
+Design a REAL-WORLD payroll calculation system with the following requirements:
+
+1. Employees must be paid:
+   - Normal pay on weekdays
+   - Double pay on weekends
+   - Additional pay for:
+     • Overtime
+     • Holidays
+     • Night shifts
+
+2. Base hourly rate must be DERIVED from base compensation
+   (annual/monthly/hourly), not stored directly.
+
+3. The system must:
+   - Be auditable (explain exactly WHY a pay amount was generated)
+   - Be deterministic (same input → same output)
+   - Support frequent policy changes without code deployment
+   - Scale across multiple countries with different labor laws
+
+4. Rules must be:
+   - Easy for business users to manage
+   - Isolated by country
+   - Versioned and effective-date driven
+
+5. Avoid unsafe designs:
+   - No arithmetic inside rule tables
+   - No scripting-based rules for core payroll logic
+   - No AI/ML for pay decisions
+
+Deliver the following:
+
+A. Full payroll system architecture diagram (logical flow)
+B. Clear separation between:
+   - Policy rules
+   - Formula calculations
+   - Execution/orchestration
+C. Database schema for:
+   - Rule matrices / decision tables
+   - Formula registry & parameters
+   - Payroll audit logs
+D. How overtime, holiday, night shift premiums are applied
+   (including stacking vs max policy)
+E. Country-specific rule isolation strategy
+F. Example of SAP/Workday-style payroll audit logs
+G. Step-by-step walkthrough of a real payroll run
+H. Explain whether Rule Matrix is sufficient or if a better
+   approach (DMN, hybrid, etc.) should be used — and why
+
+Think like a production architect, not a tutorial writer.
+Explain design decisions and trade-offs clearly.
