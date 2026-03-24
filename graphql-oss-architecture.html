@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>100% Open Source GraphQL Architecture — Time Away Service</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,600;0,700;1,300&family=IBM+Plex+Mono:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#fafaf7;
+  --bg2:#f2f1ec;
+  --bg3:#e8e6df;
+  --card:#ffffff;
+  --ink:#1c1c1a;
+  --ink2:#3a3a36;
+  --muted:#7a7870;
+  --dim:#b8b5aa;
+  --border:#dddbd4;
+  --border2:#c8c5bc;
+  --green:#1a6b3a;
+  --green-bg:rgba(26,107,58,0.08);
+  --green-border:rgba(26,107,58,0.25);
+  --red:#c0392b;
+  --red-bg:rgba(192,57,43,0.07);
+  --red-border:rgba(192,57,43,0.2);
+  --blue:#1a4fa0;
+  --blue-bg:rgba(26,79,160,0.07);
+  --blue-border:rgba(26,79,160,0.2);
+  --amber:#b45309;
+  --amber-bg:rgba(180,83,9,0.08);
+  --amber-border:rgba(180,83,9,0.2);
+  --purple:#5b21b6;
+  --purple-bg:rgba(91,33,182,0.07);
+  --purple-border:rgba(91,33,182,0.2);
+  --teal:#0d7377;
+  --teal-bg:rgba(13,115,119,0.08);
+  --teal-border:rgba(13,115,119,0.2);
+  --font:'IBM Plex Sans',sans-serif;
+  --mono:'IBM Plex Mono',monospace;
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--font);background:var(--bg);color:var(--ink);overflow-x:hidden;line-height:1.6}
+
+/* HEADER */
+header{
+  background:var(--ink);color:#fafaf7;
+  padding:0 52px;height:58px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100;
+  border-bottom:3px solid var(--green);
+}
+.logo{font-size:15px;font-weight:700;letter-spacing:-0.02em;display:flex;align-items:center;gap:10px}
+.oss-badge-head{
+  font-family:var(--mono);font-size:10px;
+  background:rgba(26,107,58,0.3);border:1px solid rgba(26,107,58,0.5);
+  color:#6ee7a0;padding:3px 10px;border-radius:3px;letter-spacing:0.08em;
+}
+nav{display:flex;gap:2px}
+nav a{
+  font-family:var(--mono);font-size:11px;color:rgba(255,255,255,0.5);
+  text-decoration:none;padding:5px 12px;border-radius:3px;transition:all 0.2s;
+}
+nav a:hover{color:#fff;background:rgba(255,255,255,0.08)}
+
+/* HERO */
+.hero{
+  background:var(--ink);color:#fafaf7;
+  padding:72px 52px 60px;position:relative;overflow:hidden;
+  border-bottom:1px solid rgba(255,255,255,0.06);
+}
+.hero::after{
+  content:'OSS';position:absolute;right:-20px;top:-20px;
+  font-size:240px;font-weight:700;letter-spacing:-0.05em;
+  color:rgba(255,255,255,0.02);pointer-events:none;
+}
+.hero-warn{
+  display:inline-flex;align-items:center;gap:10px;
+  background:rgba(192,57,43,0.15);border:1px solid rgba(192,57,43,0.35);
+  color:#f87171;padding:8px 16px;border-radius:4px;
+  font-family:var(--mono);font-size:12px;margin-bottom:32px;
+  max-width:780px;line-height:1.6;
+}
+.hero-warn strong{color:#fca5a5}
+.hero h1{font-size:clamp(36px,5vw,68px);font-weight:700;line-height:0.95;letter-spacing:-0.04em;margin-bottom:24px}
+.hero h1 em{font-style:italic;font-weight:300;color:rgba(250,250,247,0.4)}
+.hero-sub{font-family:var(--mono);font-size:13px;font-weight:300;color:rgba(250,250,247,0.5);max-width:640px;line-height:1.9;margin-bottom:40px}
+
+/* OSS tool pills row */
+.oss-tools{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:40px}
+.oss-pill{
+  font-family:var(--mono);font-size:11px;
+  background:rgba(26,107,58,0.2);border:1px solid rgba(26,107,58,0.35);
+  color:#6ee7a0;padding:4px 12px;border-radius:20px;letter-spacing:0.03em;
+}
+.oss-pill.replaced{
+  background:rgba(192,57,43,0.15);border-color:rgba(192,57,43,0.35);
+  color:#f87171;text-decoration:line-through;opacity:0.6;
+}
+
+/* Stats */
+.hero-bar{display:flex;gap:1px;background:rgba(255,255,255,0.06);border-radius:6px;overflow:hidden;max-width:640px}
+.hb{flex:1;padding:18px 20px;background:rgba(255,255,255,0.03)}
+.hb-v{font-size:26px;font-weight:700;letter-spacing:-0.03em;line-height:1}
+.hb-l{font-family:var(--mono);font-size:10px;color:rgba(250,250,247,0.4);margin-top:4px;letter-spacing:0.05em;text-transform:uppercase}
+.v-g{color:#4ade80}.v-b{color:#60a5fa}.v-a{color:#fbbf24}.v-r{color:#f87171}
+
+/* ── SECTION ── */
+.section{padding:56px 52px;border-bottom:1px solid var(--border)}
+.eyebrow{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:10px}
+.eyebrow::before{content:'';width:24px;height:1px;background:var(--border2)}
+.sec-title{font-size:clamp(22px,3vw,36px);font-weight:700;letter-spacing:-0.03em;margin-bottom:10px;line-height:1.05}
+.sec-sub{font-size:14px;color:var(--muted);line-height:1.8;max-width:680px;margin-bottom:40px}
+
+/* ── REPLACEMENT TABLE ── */
+.rep-table{width:100%;border-collapse:collapse;font-size:13px}
+.rep-table thead tr{background:var(--bg2)}
+.rep-table th{
+  padding:12px 16px;text-align:left;
+  font-family:var(--mono);font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);
+  border-bottom:2px solid var(--border2);
+}
+.rep-table td{padding:14px 16px;border-bottom:1px solid var(--border);vertical-align:top}
+.rep-table tr:hover td{background:var(--bg2)}
+.rep-table tr:last-child td{border:none}
+.cell-cat{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.cell-old{color:var(--red);font-weight:600;text-decoration:line-through;opacity:0.8}
+.cell-note{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:3px}
+.cell-new{font-weight:600}
+.cell-lic{font-family:var(--mono);font-size:10px}
+.lic-mit{color:var(--green)}.lic-apache{color:var(--blue)}.lic-mpl{color:var(--purple)}
+.cell-why{font-size:12px;color:var(--muted);line-height:1.6}
+.why-tag{
+  display:inline-block;font-family:var(--mono);font-size:10px;
+  background:var(--green-bg);border:1px solid var(--green-border);
+  color:var(--green);padding:1px 7px;border-radius:3px;margin-top:4px;
+}
+
+/* ── FULL ARCHITECTURE SVG SECTION ── */
+.arch-container{
+  background:var(--card);border:1px solid var(--border);border-radius:8px;
+  overflow:hidden;margin-top:32px;
+}
+.arch-container svg{width:100%;height:auto;display:block}
+
+/* ── COMPARE GRID ── */
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-top:32px}
+.cbox{background:var(--card)}
+.chead{padding:14px 22px;font-size:12px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)}
+.cold .chead{background:var(--red-bg);color:var(--red)}
+.cnew .chead{background:var(--green-bg);color:var(--green)}
+.cbody{padding:22px;font-family:var(--mono);font-size:12px;font-weight:300;line-height:1.8}
+.cbody svg{display:block;width:100%;height:auto}
+
+/* ── LAYER TABLE ── */
+.layer-list{margin-top:32px;display:flex;flex-direction:column;gap:1px}
+.layer{
+  display:grid;grid-template-columns:200px 1fr 1fr;
+  background:var(--card);border:1px solid var(--border);
+  transition:background 0.2s;
+}
+.layer:hover{background:var(--bg2)}
+.layer-id{
+  padding:20px 24px;border-right:1px solid var(--border);
+  display:flex;flex-direction:column;gap:4px;justify-content:center;
+  background:var(--bg2);
+}
+.layer-name{font-size:13px;font-weight:600}
+.layer-role{font-family:var(--mono);font-size:10px;color:var(--muted);line-height:1.5}
+.layer-old{
+  padding:16px 22px;border-right:1px solid var(--border);
+}
+.layer-new{padding:16px 22px}
+.layer-label{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px}
+.tool-row{display:flex;flex-wrap:wrap;gap:6px}
+.tool{
+  font-family:var(--mono);font-size:11px;padding:3px 10px;border-radius:3px;
+  border:1px solid;display:flex;align-items:center;gap:5px;
+}
+.tool-old{background:var(--red-bg);border-color:var(--red-border);color:var(--red)}
+.tool-new{background:var(--green-bg);border-color:var(--green-border);color:var(--green)}
+.tool-kept{background:var(--bg2);border-color:var(--border2);color:var(--muted)}
+.tool-oss{font-size:9px;background:var(--green-bg);border:1px solid var(--green-border);color:var(--green);padding:1px 5px;border-radius:2px}
+.tool-pay{font-size:9px;background:var(--red-bg);border:1px solid var(--red-border);color:var(--red);padding:1px 5px;border-radius:2px}
+
+/* ── CODE TABS ── */
+.code-block{border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-top:28px}
+.ctab-bar{display:flex;background:var(--bg2);border-bottom:1px solid var(--border);overflow-x:auto}
+.ctab{
+  padding:10px 18px;font-family:var(--mono);font-size:11px;color:var(--muted);
+  cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all 0.15s;
+  display:flex;align-items:center;gap:6px;
+}
+.ctab .oss-dot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0}
+.ctab.on{color:var(--green);border-bottom-color:var(--green);background:var(--card)}
+.ctab:hover:not(.on){color:var(--ink)}
+.cpanel{display:none}
+.cpanel.on{display:block}
+pre{
+  padding:24px;font-family:var(--mono);font-size:12px;font-weight:300;
+  line-height:1.9;color:var(--ink2);overflow-x:auto;background:var(--card);
+}
+.k{color:var(--blue);font-weight:400}.t{color:var(--teal)}.fn{color:var(--purple)}
+.s{color:var(--green)}.c{color:var(--dim);font-style:italic}.num{color:var(--amber)}
+
+/* ── OSS CALLOUT BOXES ── */
+.callouts{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:32px}
+.callout{
+  border:1px solid var(--border);border-radius:6px;overflow:hidden;
+  background:var(--card);transition:border-color 0.2s,transform 0.2s;
+}
+.callout:hover{border-color:var(--border2);transform:translateY(-2px)}
+.callout-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:10px}
+.callout-icon{
+  width:30px;height:30px;border-radius:5px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:14px;
+}
+.callout h4{font-size:13px;font-weight:600;line-height:1.2}
+.callout-lic{font-family:var(--mono);font-size:10px;margin-top:2px}
+.callout-body{padding:14px 18px}
+.callout-body p{font-size:12px;color:var(--muted);line-height:1.7;margin-bottom:8px}
+.callout-body p:last-child{margin:0}
+.callout-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:10px}
+.ctag{font-family:var(--mono);font-size:10px;background:var(--bg2);border:1px solid var(--border);color:var(--muted);padding:2px 7px;border-radius:3px}
+
+/* ── METRICS ── */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:32px}
+.mcard{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:20px;text-align:center}
+.mcard-before{font-family:var(--mono);font-size:10px;color:var(--red);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px}
+.mcard-after{font-family:var(--mono);font-size:10px;color:var(--green);text-transform:uppercase;letter-spacing:0.08em;margin-top:4px}
+.mcard-val{font-size:28px;font-weight:700;letter-spacing:-0.04em;line-height:1}
+.mcard-arrow{display:block;font-size:18px;color:var(--green);margin:3px 0}
+.mcard-label{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.4}
+.mv-old{color:var(--red)}.mv-new{color:var(--green)}
+
+/* ── FOOTER ── */
+footer{
+  background:var(--ink);color:rgba(250,250,247,0.5);
+  padding:44px 52px;font-family:var(--mono);font-size:12px;line-height:1.8;
+  border-top:3px solid var(--green);
+  display:flex;justify-content:space-between;align-items:flex-start;gap:32px;
+  flex-wrap:wrap;
+}
+footer strong{color:#fafaf7}
+.footer-oss-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.footer-oss-pill{
+  font-family:var(--mono);font-size:10px;
+  background:rgba(26,107,58,0.2);border:1px solid rgba(26,107,58,0.3);
+  color:#6ee7a0;padding:2px 9px;border-radius:20px;
+}
+
+@media(max-width:1024px){
+  header,footer,.hero,.section{padding-left:24px;padding-right:24px}
+  .callouts{grid-template-columns:1fr 1fr}
+  .metrics{grid-template-columns:repeat(2,1fr)}
+  .compare{grid-template-columns:1fr}
+  .layer{grid-template-columns:1fr;grid-template-rows:auto auto auto}
+  .layer-old,.layer-id{border-right:none;border-bottom:1px solid var(--border)}
+}
+@media(max-width:640px){
+  .callouts{grid-template-columns:1fr}
+  .metrics{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span>GQL/OSS</span>
+    <span class="oss-badge-head">100% Open Source</span>
+  </div>
+  <nav>
+    <a href="#problem">Problem</a>
+    <a href="#replacements">Replacements</a>
+    <a href="#layers">Layers</a>
+    <a href="#tools">Tools</a>
+    <a href="#code">Code</a>
+    <a href="#metrics">Metrics</a>
+  </nav>
+</header>
+
+<!-- ── HERO ── -->
+<div class="hero">
+  <div class="hero-warn">
+    <span>⚠</span>
+    <span><strong>GraphOS / Apollo Studio is proprietary and paid.</strong> The previous proposal incorrectly used Apollo Studio for schema registry, field-level tracing, and usage analytics — all behind a commercial paywall. This page replaces every non-open-source tool with a battle-tested OSS alternative. Zero vendor lock-in.</span>
+  </div>
+  <h1>100% Open Source<br><em>GraphQL Architecture</em></h1>
+  <p class="hero-sub">Every tool in this stack is MIT, Apache 2.0, or MPL licensed. Self-hosted, auditable, zero monthly SaaS bills. Schema governance via <strong style="color:#fafaf7">graphql-inspector</strong>, tracing via <strong style="color:#fafaf7">Jaeger + OTEL</strong>, federation via <strong style="color:#fafaf7">GraphQL Mesh or Yoga</strong>, monitoring via <strong style="color:#fafaf7">Prometheus + Grafana</strong>.</p>
+
+  <div class="oss-tools">
+    <span class="oss-pill replaced">Apollo GraphOS ✗</span>
+    <span class="oss-pill replaced">Apollo Studio ✗</span>
+    <span class="oss-pill replaced">Apollo Router (paid features) ✗</span>
+    <span class="oss-pill">graphql-yoga ✓ MIT</span>
+    <span class="oss-pill">GraphQL Mesh ✓ MIT</span>
+    <span class="oss-pill">graphql-inspector ✓ MIT</span>
+    <span class="oss-pill">Jaeger ✓ Apache 2.0</span>
+    <span class="oss-pill">Prometheus ✓ Apache 2.0</span>
+    <span class="oss-pill">Grafana ✓ AGPL</span>
+    <span class="oss-pill">DataLoader ✓ MIT</span>
+    <span class="oss-pill">graphql-redis-subscriptions ✓ MIT</span>
+    <span class="oss-pill">Conductor ✓ Apache 2.0</span>
+    <span class="oss-pill">Hive ✓ MIT (self-host)</span>
+  </div>
+
+  <div class="hero-bar">
+    <div class="hb"><div class="hb-v v-g">$0</div><div class="hb-l">Monthly SaaS cost</div></div>
+    <div class="hb"><div class="hb-v v-b">100%</div><div class="hb-l">Self-hosted</div></div>
+    <div class="hb"><div class="hb-v v-a">MIT/Apache</div><div class="hb-l">All licenses</div></div>
+    <div class="hb"><div class="hb-v v-r">0</div><div class="hb-l">Vendor lock-in</div></div>
+  </div>
+</div>
+
+<!-- ── PROBLEM SECTION ── -->
+<div class="section" id="problem">
+  <div class="eyebrow">What Was Wrong</div>
+  <div class="sec-title">The Non-OSS Tools That Were Proposed</div>
+  <div class="sec-sub">These tools from the previous proposal are proprietary, cloud-only, or require paid subscriptions. Here's exactly what they do, why they're problematic, and what replaces each one.</div>
+
+  <table class="rep-table">
+    <thead>
+      <tr>
+        <th>Tool Proposed</th>
+        <th>What It Does</th>
+        <th>Problem</th>
+        <th>Open Source Replacement</th>
+        <th>License</th>
+        <th>Why It's Better</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><div class="cell-old">Apollo GraphOS</div><div class="cell-note">cloud.apollo.io</div></td>
+        <td style="font-size:12px;color:var(--muted)">Schema registry, field usage analytics, change history, breaking change detection</td>
+        <td style="font-size:12px;color:var(--red)">Paid SaaS — $0 for hobby, then $299+/mo. Data leaves your infra. Requires apollo.io account for every dev.</td>
+        <td><strong style="color:var(--green)">GraphQL Hive</strong> (self-hosted)<br><div class="cell-note">github.com/kamilkisiela/graphql-hive</div></td>
+        <td><span class="cell-lic lic-mit">MIT</span></td>
+        <td class="cell-why">Full schema registry, usage analytics, breaking change detection — self-hosted on your own infra. Docker Compose ready. No data leaves your network. <span class="why-tag">self-host</span></td>
+      </tr>
+      <tr>
+        <td><div class="cell-old">Apollo Studio</div><div class="cell-note">Tracing UI</div></td>
+        <td style="font-size:12px;color:var(--muted)">Field-level resolver flame graphs, operation analytics, performance dashboards</td>
+        <td style="font-size:12px;color:var(--red)">Requires Apollo GraphOS subscription. Sends trace data to Apollo's cloud. Cannot be self-hosted.</td>
+        <td><strong style="color:var(--green)">Jaeger + OpenTelemetry</strong><br><div class="cell-note">jaegertracing.io · opentelemetry.io</div></td>
+        <td><span class="cell-lic lic-apache">Apache 2.0</span></td>
+        <td class="cell-why">OTEL instruments every resolver. Jaeger provides distributed flame graphs. Runs entirely in your k8s cluster. Already industry standard. <span class="why-tag">self-host</span><span class="why-tag" style="background:var(--blue-bg);border-color:var(--blue-border);color:var(--blue)">CNCF</span></td>
+      </tr>
+      <tr>
+        <td><div class="cell-old">Apollo Router</div><div class="cell-note">(paid enterprise features)</div></td>
+        <td style="font-size:12px;color:var(--muted)">Federation gateway, query planning, caching, rate limiting, circuit breaking</td>
+        <td style="font-size:12px;color:var(--red)">Core is open source BUT: persisted queries, advanced rate limiting, coprocessors require Apollo GraphOS subscription (paid).</td>
+        <td><strong style="color:var(--green)">The Guild Conductor</strong> or <strong style="color:var(--green)">graphql-yoga + envelop</strong><br><div class="cell-note">the-guild.dev/conductor</div></td>
+        <td><span class="cell-lic lic-apache">Apache 2.0</span></td>
+        <td class="cell-why">Conductor is a fully OSS federation gateway. All features included. No phone-home. Alternatively graphql-yoga with envelop plugins gives full control. <span class="why-tag">100% OSS</span></td>
+      </tr>
+      <tr>
+        <td><div class="cell-old">rover CLI</div><div class="cell-note">schema check</div></td>
+        <td style="font-size:12px;color:var(--muted)">CI pipeline schema check, breaking change detection, subgraph publish to GraphOS</td>
+        <td style="font-size:12px;color:var(--red)">rover requires an Apollo GraphOS account and API key even for schema checking. CI is coupled to Apollo's cloud.</td>
+        <td><strong style="color:var(--green)">graphql-inspector CLI</strong><br><div class="cell-note">github.com/kamilkisiela/graphql-inspector</div></td>
+        <td><span class="cell-lic lic-mit">MIT</span></td>
+        <td class="cell-why">Self-contained CLI. Detects breaking changes, validates schemas, diffs SDL files. No account needed. Works fully offline in CI. GitHub Action available. <span class="why-tag">no account</span><span class="why-tag">offline CI</span></td>
+      </tr>
+      <tr>
+        <td><div class="cell-old">Apollo Federation</div><div class="cell-note">@apollo/subgraph</div></td>
+        <td style="font-size:12px;color:var(--muted)">Schema federation spec, @key directives, entity resolution across subgraphs</td>
+        <td style="font-size:12px;color:var(--red)">Federation spec itself is open, but Apollo's implementation (@apollo/gateway) is tightly coupled to their ecosystem and GraphOS for advanced features.</td>
+        <td><strong style="color:var(--green)">GraphQL Mesh</strong> or <strong style="color:var(--green)">graphql-yoga federation</strong><br><div class="cell-note">the-guild.dev/graphql-mesh</div></td>
+        <td><span class="cell-lic lic-mit">MIT</span></td>
+        <td class="cell-why">GraphQL Mesh implements the federation spec fully, with schema stitching and transform support. graphql-yoga's federation plugin works with any runtime. <span class="why-tag">spec-compliant</span></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ── FULL OPEN SOURCE ARCHITECTURE DIAGRAM ── -->
+<div class="section">
+  <div class="eyebrow">Architecture Overview</div>
+  <div class="sec-title">Old (Proprietary) vs New (100% OSS)</div>
+  <div class="sec-sub">Side-by-side comparison of the proprietary stack vs the fully open-source replacement. Every box on the right is self-hosted, MIT or Apache licensed, and auditable.</div>
+
+  <div class="compare">
+    <!-- OLD -->
+    <div class="cbox cold">
+      <div class="chead">❌ Proprietary / Paid Tools</div>
+      <div class="cbody">
+        <svg viewBox="0 0 420 380" xmlns="http://www.w3.org/2000/svg">
+          <defs><marker id="ra2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M2 2L8 5L2 8" fill="none" stroke="#c0392b" stroke-width="1.5"/></marker></defs>
+
+          <!-- Client -->
+          <rect x="10" y="10" width="80" height="36" rx="4" fill="rgba(192,57,43,0.06)" stroke="#c0392b" stroke-width="1"/>
+          <text x="50" y="32" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="#c0392b">Mobile / Web</text>
+          <line x1="90" y1="28" x2="128" y2="28" stroke="#c0392b" stroke-width="1.2" marker-end="url(#ra2)"/>
+
+          <!-- Apollo Router (paid features) -->
+          <rect x="130" y="10" width="130" height="55" rx="5" fill="rgba(192,57,43,0.06)" stroke="#c0392b" stroke-width="1.5"/>
+          <text x="195" y="30" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="#c0392b" font-weight="600">Apollo Router</text>
+          <rect x="140" y="37" width="110" height="16" rx="3" fill="rgba(192,57,43,0.15)" stroke="rgba(192,57,43,0.4)" stroke-width="1"/>
+          <text x="195" y="48" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#c0392b">PAID: APQ · rate limit</text>
+          <rect x="186" y="6" width="78" height="14" rx="3" fill="rgba(192,57,43,0.3)"/>
+          <text x="225" y="16" text-anchor="middle" font-family="IBM Plex Mono" font-size="8" fill="#c0392b">GraphOS required</text>
+
+          <!-- Apollo GraphOS cloud -->
+          <rect x="290" y="10" width="120" height="55" rx="5" fill="rgba(192,57,43,0.08)" stroke="#c0392b" stroke-width="1.5" stroke-dasharray="5 3"/>
+          <text x="350" y="30" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="#c0392b" font-weight="600">Apollo GraphOS</text>
+          <text x="350" y="44" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#c0392b">cloud.apollo.io</text>
+          <text x="350" y="57" text-anchor="middle" font-family="IBM Plex Mono" font-size="8" fill="#7a7870">$299+/month</text>
+          <line x1="260" y1="28" x2="288" y2="28" stroke="#c0392b" stroke-width="1" stroke-dasharray="4 2" marker-end="url(#ra2)"/>
+          <text x="274" y="22" text-anchor="middle" font-family="IBM Plex Mono" font-size="8" fill="#c0392b">telemetry</text>
+
+          <!-- Schema Registry (GraphOS) -->
+          <rect x="290" y="86" width="120" height="44" rx="5" fill="rgba(192,57,43,0.06)" stroke="#c0392b" stroke-width="1.5" stroke-dasharray="5 3"/>
+          <text x="350" y="104" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#c0392b" font-weight="600">Schema Registry</text>
+          <text x="350" y="118" text-anchor="middle" font-family="IBM Plex Mono" font-size="8" fill="#c0392b">Apollo GraphOS only</text>
+          <line x1="260" y1="42" x2="288" y2="108" stroke="#c0392b" stroke-width="1" stroke-dasharray="4 2" marker-end="url(#ra2)"/>
+
+          <!-- Rover CI (requires GraphOS) -->
+          <rect x="10" y="90" width="120" height="44" rx="5" fill="rgba(192,57,43,0.06)" stroke="#c0392b" stroke-width="1.5"/>
+          <text x="70" y="108" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#c0392b" font-weight="600">rover CI check</text>
+          <text x="70" y="122" text-anchor="middle" font-family="IBM Plex Mono" font-size="8" fill="#c0392b">Apollo account required</text>
+          <line x1="70" y1="134" x2="70" y2="154" stroke="#c0392b" stroke-width="1" marker-end="url(#ra2)"/>
+
+          <!-- Apollo Federation subgraphs -->
+          <rect x="10" y="156" width="260" height="90" rx="6" fill="rgba(192,57,43,0.04)" stroke="#c0392b" stroke-width="1" stroke-dasharray="5 3"/>
+          <text x="140" y="174" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#c0392b">@apollo/gateway + subgraphs</text>
+          <rect x="20" y="180" width="72" height="26" rx="4" fill="rgba(192,57,43,0.08)" stroke="#c0392b" stroke-width="1"/>
+          <text x="56" y="197" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#c0392b">Absence</text>
+          <rect x="104" y="180" width="72" height="26" rx="4" fill="rgba(192,57,43,0.08)" stroke="#c0392b" stroke-width="1"/>
+          <text x="140" y="197" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#c0392b">Balances</text>
+          <rect x="188" y="180" width="72" height="26" rx="4" fill="rgba(192,57,43,0.08)" stroke="#c0392b" stroke-width="1"/>
+          <text x="224" y="197" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#c0392b">History</text>
+          <line x1="195" y1="65" x2="195" y2="154" stroke="#c0392b" stroke-width="1.2" marker-end="url(#ra2)"/>
+
+          <!-- Apollo Studio tracing (cloud) -->
+          <rect x="290" y="156" width="120" height="44" rx="5" fill="rgba(192,57,43,0.06)" stroke="#c0392b" stroke-width="1.5" stroke-dasharray="5 3"/>
+          <text x="350" y="174" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#c0392b" font-weight="600">Apollo Studio</text>
+          <text x="350" y="188" text-anchor="middle" font-family="IBM Plex Mono" font-size="8" fill="#c0392b">Tracing (cloud only)</text>
+          <line x1="270" y1="195" x2="288" y2="178" stroke="#c0392b" stroke-width="1" stroke-dasharray="4 2" marker-end="url(#ra2)"/>
+
+          <!-- Problem summary -->
+          <rect x="10" y="270" width="400" height="100" rx="5" fill="rgba(192,57,43,0.04)" stroke="rgba(192,57,43,0.25)" stroke-width="1"/>
+          <text x="20" y="290" font-family="IBM Plex Mono" font-size="10" fill="#c0392b" font-weight="600">Non-OSS Problems</text>
+          <text x="20" y="308" font-family="IBM Plex Mono" font-size="9" fill="#7a7870">✗ GraphOS: $299+/mo — schema registry + tracing locked behind paywall</text>
+          <text x="20" y="322" font-family="IBM Plex Mono" font-size="9" fill="#7a7870">✗ rover CLI: requires Apollo account + API key even in offline CI</text>
+          <text x="20" y="336" font-family="IBM Plex Mono" font-size="9" fill="#7a7870">✗ Apollo Studio: traces sent to Apollo's cloud, cannot self-host</text>
+          <text x="20" y="350" font-family="IBM Plex Mono" font-size="9" fill="#7a7870">✗ APQ + advanced rate limiting locked behind GraphOS subscription</text>
+          <text x="20" y="364" font-family="IBM Plex Mono" font-size="9" fill="#c0392b" font-weight="600">→ Vendor lock-in to Apollo's SaaS. Data leaves your infrastructure.</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- NEW -->
+    <div class="cbox cnew">
+      <div class="chead">✅ 100% Open Source Replacement Stack</div>
+      <div class="cbody">
+        <svg viewBox="0 0 420 380" xmlns="http://www.w3.org/2000/svg">
+          <defs><marker id="ga2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M2 2L8 5L2 8" fill="none" stroke="#1a6b3a" stroke-width="1.5"/></marker></defs>
+
+          <!-- Client -->
+          <rect x="10" y="10" width="80" height="36" rx="4" fill="rgba(26,107,58,0.07)" stroke="#1a6b3a" stroke-width="1"/>
+          <text x="50" y="32" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="#1a6b3a">Mobile / Web</text>
+          <line x1="90" y1="28" x2="128" y2="28" stroke="#1a6b3a" stroke-width="1.2" marker-end="url(#ga2)"/>
+
+          <!-- Conductor / graphql-yoga gateway -->
+          <rect x="130" y="10" width="138" height="55" rx="5" fill="rgba(26,107,58,0.07)" stroke="#1a6b3a" stroke-width="1.5"/>
+          <text x="199" y="28" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="#1a6b3a" font-weight="600">Conductor Gateway</text>
+          <rect x="140" y="34" width="118" height="16" rx="3" fill="rgba(26,107,58,0.12)" stroke="rgba(26,107,58,0.3)" stroke-width="1"/>
+          <text x="199" y="46" text-anchor="middle" font-family="IBM Plex Mono" font-size="8" fill="#1a6b3a">Apache 2.0 · ALL features free</text>
+          <text x="180" y="60" text-anchor="middle" font-family="IBM Plex Mono" font-size="8" fill="#7a7870">rate limit · APQ · auth plugins</text>
+          <rect x="218" y="6" width="54" height="14" rx="3" fill="rgba(26,107,58,0.2)"/>
+          <text x="245" y="16" text-anchor="middle" font-family="IBM Plex Mono" font-size="8" fill="#1a6b3a">OSS ✓</text>
+
+          <!-- GraphQL Hive (self-hosted) -->
+          <rect x="290" y="10" width="120" height="55" rx="5" fill="rgba(26,107,58,0.07)" stroke="#1a6b3a" stroke-width="1.5"/>
+          <text x="350" y="28" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="#1a6b3a" font-weight="600">GraphQL Hive</text>
+          <text x="350" y="42" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#1a6b3a">self-hosted · MIT</text>
+          <text x="350" y="56" text-anchor="middle" font-family="IBM Plex Mono" font-size="8" fill="#7a7870">schema registry + analytics</text>
+          <line x1="268" y1="28" x2="288" y2="28" stroke="#1a6b3a" stroke-width="1.2" marker-end="url(#ga2)"/>
+
+          <!-- graphql-inspector CI -->
+          <rect x="10" y="90" width="128" height="44" rx="5" fill="rgba(26,107,58,0.07)" stroke="#1a6b3a" stroke-width="1.5"/>
+          <text x="74" y="108" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#1a6b3a" font-weight="600">graphql-inspector</text>
+          <text x="74" y="122" text-anchor="middle" font-family="IBM Plex Mono" font-size="8" fill="#7a7870">MIT · no account · offline CI</text>
+          <line x1="74" y1="134" x2="74" y2="154" stroke="#1a6b3a" stroke-width="1" marker-end="url(#ga2)"/>
+          <text x="100" y="148" font-family="IBM Plex Mono" font-size="8" fill="#7a7870">diff SDL</text>
+
+          <!-- Schema Registry (Hive) -->
+          <rect x="290" y="86" width="120" height="44" rx="5" fill="rgba(26,107,58,0.07)" stroke="#1a6b3a" stroke-width="1.5"/>
+          <text x="350" y="104" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#1a6b3a" font-weight="600">Hive Schema Reg.</text>
+          <text x="350" y="118" text-anchor="middle" font-family="IBM Plex Mono" font-size="8" fill="#7a7870">self-hosted · your infra</text>
+          <line x1="268" y1="50" x2="350" y2="86" stroke="#1a6b3a" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#ga2)"/>
+
+          <!-- GraphQL Mesh subgraphs -->
+          <rect x="10" y="156" width="270" height="90" rx="6" fill="rgba(26,107,58,0.04)" stroke="#1a6b3a" stroke-width="1" stroke-dasharray="5 3"/>
+          <text x="145" y="174" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#1a6b3a">graphql-yoga + envelop · MIT</text>
+          <rect x="20" y="180" width="72" height="26" rx="4" fill="rgba(26,107,58,0.08)" stroke="#1a6b3a" stroke-width="1"/>
+          <text x="56" y="197" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#1a6b3a">Absence</text>
+          <rect x="104" y="180" width="72" height="26" rx="4" fill="rgba(26,107,58,0.08)" stroke="#1a6b3a" stroke-width="1"/>
+          <text x="140" y="197" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#1a6b3a">Balances</text>
+          <rect x="188" y="180" width="72" height="26" rx="4" fill="rgba(26,107,58,0.08)" stroke="#1a6b3a" stroke-width="1"/>
+          <text x="224" y="197" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#1a6b3a">History</text>
+          <line x1="199" y1="65" x2="199" y2="154" stroke="#1a6b3a" stroke-width="1.2" marker-end="url(#ga2)"/>
+
+          <!-- Jaeger + OTEL -->
+          <rect x="290" y="156" width="120" height="44" rx="5" fill="rgba(26,79,160,0.07)" stroke="#1a4fa0" stroke-width="1.5"/>
+          <text x="350" y="174" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#1a4fa0" font-weight="600">Jaeger + OTEL</text>
+          <text x="350" y="188" text-anchor="middle" font-family="IBM Plex Mono" font-size="8" fill="#7a7870">Apache 2.0 · self-host</text>
+          <line x1="280" y1="200" x2="288" y2="178" stroke="#1a4fa0" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#ga2)"/>
+
+          <!-- Prometheus + Grafana -->
+          <rect x="290" y="216" width="120" height="44" rx="5" fill="rgba(180,83,9,0.07)" stroke="#b45309" stroke-width="1.5"/>
+          <text x="350" y="234" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#b45309" font-weight="600">Prometheus + Grafana</text>
+          <text x="350" y="248" text-anchor="middle" font-family="IBM Plex Mono" font-size="8" fill="#7a7870">Apache 2.0 + AGPL</text>
+          <line x1="280" y1="230" x2="288" y2="238" stroke="#b45309" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#ga2)"/>
+
+          <!-- Benefits -->
+          <rect x="10" y="270" width="400" height="100" rx="5" fill="rgba(26,107,58,0.04)" stroke="rgba(26,107,58,0.25)" stroke-width="1"/>
+          <text x="20" y="290" font-family="IBM Plex Mono" font-size="10" fill="#1a6b3a" font-weight="600">OSS Benefits</text>
+          <text x="20" y="308" font-family="IBM Plex Mono" font-size="9" fill="#7a7870">✓ Hive: full schema registry + analytics, self-hosted, MIT license</text>
+          <text x="20" y="322" font-family="IBM Plex Mono" font-size="9" fill="#7a7870">✓ graphql-inspector: breaking change CI gate, no account, offline</text>
+          <text x="20" y="336" font-family="IBM Plex Mono" font-size="9" fill="#7a7870">✓ Jaeger: distributed field-level tracing, runs in your own cluster</text>
+          <text x="20" y="350" font-family="IBM Plex Mono" font-size="9" fill="#7a7870">✓ Conductor: all gateway features free, Apache 2.0, no SaaS</text>
+          <text x="20" y="364" font-family="IBM Plex Mono" font-size="9" fill="#1a6b3a" font-weight="600">→ $0 monthly bills. Data stays in your infra. Full audit trail.</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── LAYER-BY-LAYER REPLACEMENT ── -->
+<div class="section" id="layers">
+  <div class="eyebrow">Layer-by-Layer</div>
+  <div class="sec-title">Every Layer — Old Tool vs OSS Replacement</div>
+  <div class="sec-sub">Each row shows what was proposed (often proprietary), what replaces it, and whether the replacement is MIT, Apache, or AGPL licensed.</div>
+
+  <div class="layer-list">
+    <div class="layer">
+      <div class="layer-id">
+        <div class="layer-name">Schema Registry</div>
+        <div class="layer-role">Store SDL versions, track changes, enforce contracts between subgraphs</div>
+      </div>
+      <div class="layer-old">
+        <div class="layer-label">Was Proposed</div>
+        <div class="tool-row">
+          <div class="tool tool-old">Apollo GraphOS <span class="tool-pay">PAID</span></div>
+          <div class="tool tool-old">rover push <span class="tool-pay">PAID</span></div>
+        </div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:8px">$299+/mo SaaS · data leaves infra · requires apollo.io account</div>
+      </div>
+      <div class="layer-new">
+        <div class="layer-label">OSS Replacement</div>
+        <div class="tool-row">
+          <div class="tool tool-new">GraphQL Hive <span class="tool-oss">MIT</span></div>
+          <div class="tool tool-new">hive CLI <span class="tool-oss">MIT</span></div>
+          <div class="tool tool-new">Docker Compose deploy <span class="tool-oss">free</span></div>
+        </div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:8px">github.com/kamilkisiela/graphql-hive · self-host in 1 command</div>
+      </div>
+    </div>
+
+    <div class="layer">
+      <div class="layer-id">
+        <div class="layer-name">CI Schema Check</div>
+        <div class="layer-role">Detect breaking changes in pull requests before they reach production</div>
+      </div>
+      <div class="layer-old">
+        <div class="layer-label">Was Proposed</div>
+        <div class="tool-row">
+          <div class="tool tool-old">rover subgraph check <span class="tool-pay">PAID</span></div>
+          <div class="tool tool-old">Apollo API Key <span class="tool-pay">PAID</span></div>
+        </div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:8px">Requires GraphOS account · CI is coupled to Apollo cloud</div>
+      </div>
+      <div class="layer-new">
+        <div class="layer-label">OSS Replacement</div>
+        <div class="tool-row">
+          <div class="tool tool-new">graphql-inspector diff <span class="tool-oss">MIT</span></div>
+          <div class="tool tool-new">GitHub Action <span class="tool-oss">MIT</span></div>
+          <div class="tool tool-new">Hive CLI check <span class="tool-oss">MIT</span></div>
+        </div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:8px">github.com/kamilkisiela/graphql-inspector · no account · fully offline</div>
+      </div>
+    </div>
+
+    <div class="layer">
+      <div class="layer-id">
+        <div class="layer-name">Federation Gateway</div>
+        <div class="layer-role">Stitch subgraphs into one supergraph, handle query planning and routing</div>
+      </div>
+      <div class="layer-old">
+        <div class="layer-label">Was Proposed</div>
+        <div class="tool-row">
+          <div class="tool tool-old">Apollo Router (paid features) <span class="tool-pay">PAID</span></div>
+        </div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:8px">Core is OSS but APQ, coprocessors, advanced rate limits need GraphOS</div>
+      </div>
+      <div class="layer-new">
+        <div class="layer-label">OSS Replacement</div>
+        <div class="tool-row">
+          <div class="tool tool-new">The Guild Conductor <span class="tool-oss">Apache 2.0</span></div>
+          <div class="tool tool-new">graphql-yoga + envelop <span class="tool-oss">MIT</span></div>
+          <div class="tool tool-new">GraphQL Mesh <span class="tool-oss">MIT</span></div>
+        </div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:8px">the-guild.dev/conductor · ALL features free · APQ built in</div>
+      </div>
+    </div>
+
+    <div class="layer">
+      <div class="layer-id">
+        <div class="layer-name">Distributed Tracing</div>
+        <div class="layer-role">Field-level resolver flame graphs, latency profiling, bottleneck detection</div>
+      </div>
+      <div class="layer-old">
+        <div class="layer-label">Was Proposed</div>
+        <div class="tool-row">
+          <div class="tool tool-old">Apollo Studio Tracing <span class="tool-pay">PAID</span></div>
+          <div class="tool tool-old">GraphOS analytics <span class="tool-pay">PAID</span></div>
+        </div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:8px">Traces sent to Apollo cloud · cannot self-host · GDPR issues</div>
+      </div>
+      <div class="layer-new">
+        <div class="layer-label">OSS Replacement</div>
+        <div class="tool-row">
+          <div class="tool tool-new">OpenTelemetry <span class="tool-oss">Apache 2.0</span></div>
+          <div class="tool tool-new">Jaeger <span class="tool-oss">Apache 2.0</span></div>
+          <div class="tool tool-new">Grafana Tempo <span class="tool-oss">AGPL</span></div>
+          <div class="tool tool-new">envelop useOpenTelemetry <span class="tool-oss">MIT</span></div>
+        </div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:8px">jaegertracing.io · CNCF graduated · k8s native · same data, your infra</div>
+      </div>
+    </div>
+
+    <div class="layer">
+      <div class="layer-id">
+        <div class="layer-name">Field Usage Analytics</div>
+        <div class="layer-role">Track which fields clients query — needed for safe deprecation</div>
+      </div>
+      <div class="layer-old">
+        <div class="layer-label">Was Proposed</div>
+        <div class="tool-row">
+          <div class="tool tool-old">Apollo Studio Field Analytics <span class="tool-pay">PAID</span></div>
+        </div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:8px">Only available through paid GraphOS plan</div>
+      </div>
+      <div class="layer-new">
+        <div class="layer-label">OSS Replacement</div>
+        <div class="tool-row">
+          <div class="tool tool-new">Hive Usage Reports <span class="tool-oss">MIT</span></div>
+          <div class="tool tool-new">envelop useUsageReporting <span class="tool-oss">MIT</span></div>
+          <div class="tool tool-new">Grafana dashboards <span class="tool-oss">AGPL</span></div>
+        </div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:8px">Hive collects per-field usage and shows deprecation safety — self-hosted</div>
+      </div>
+    </div>
+
+    <div class="layer">
+      <div class="layer-id">
+        <div class="layer-name">Metrics &amp; Alerting</div>
+        <div class="layer-role">P95 latency, error rates, SLA tracking, PagerDuty-style alerts</div>
+      </div>
+      <div class="layer-old">
+        <div class="layer-label">Was Proposed (partially OSS)</div>
+        <div class="tool-row">
+          <div class="tool tool-kept">Prometheus <span class="tool-oss">Apache 2.0</span></div>
+          <div class="tool tool-kept">Grafana <span class="tool-oss">AGPL</span></div>
+        </div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:8px">These were already correct — keep them</div>
+      </div>
+      <div class="layer-new">
+        <div class="layer-label">OSS Stack (unchanged + additions)</div>
+        <div class="tool-row">
+          <div class="tool tool-new">Prometheus <span class="tool-oss">Apache 2.0</span></div>
+          <div class="tool tool-new">Grafana <span class="tool-oss">AGPL</span></div>
+          <div class="tool tool-new">Alertmanager <span class="tool-oss">Apache 2.0</span></div>
+          <div class="tool tool-new">Karma (alert UI) <span class="tool-oss">Apache 2.0</span></div>
+        </div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:8px">Full OSS observability stack — already industry standard</div>
+      </div>
+    </div>
+
+    <div class="layer">
+      <div class="layer-id">
+        <div class="layer-name">Subgraph Servers</div>
+        <div class="layer-role">Domain-specific GraphQL servers implementing the federation spec</div>
+      </div>
+      <div class="layer-old">
+        <div class="layer-label">Was Proposed</div>
+        <div class="tool-row">
+          <div class="tool tool-old">@apollo/subgraph <span class="tool-pay">Apache 2.0*</span></div>
+        </div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:8px">*Code is OSS but tightly couples to Apollo ecosystem; advanced features need GraphOS</div>
+      </div>
+      <div class="layer-new">
+        <div class="layer-label">OSS Replacement</div>
+        <div class="tool-row">
+          <div class="tool tool-new">graphql-yoga <span class="tool-oss">MIT</span></div>
+          <div class="tool tool-new">envelop plugins <span class="tool-oss">MIT</span></div>
+          <div class="tool tool-new">pothos-graphql <span class="tool-oss">ISC</span></div>
+          <div class="tool tool-new">TypeGraphQL <span class="tool-oss">MIT</span></div>
+        </div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:8px">The Guild ecosystem · federation spec compliant · zero Apollo dependency</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── OSS TOOL DEEP DIVES ── -->
+<div class="section" id="tools">
+  <div class="eyebrow">Tool Deep Dives</div>
+  <div class="sec-title">The OSS Tools — What They Are &amp; Why They Win</div>
+  <div class="sec-sub">Each tool was chosen because it directly replaces a proprietary Apollo product, is actively maintained, has a strong community, and can be fully self-hosted.</div>
+
+  <div class="callouts">
+
+    <div class="callout">
+      <div class="callout-head">
+        <div class="callout-icon" style="background:rgba(26,107,58,0.1)">🐝</div>
+        <div>
+          <h4>GraphQL Hive</h4>
+          <div class="callout-lic"><span class="cell-lic lic-mit">MIT</span> · github.com/kamilkisiela/graphql-hive</div>
+        </div>
+      </div>
+      <div class="callout-body">
+        <p><strong>Replaces: Apollo GraphOS + Apollo Studio</strong></p>
+        <p>Full schema registry with SDL versioning, breaking change history, field usage tracking (know which fields to deprecate safely), and a schema explorer UI — all self-hosted via Docker Compose.</p>
+        <p>The Hive CLI replaces <code style="font-family:var(--mono);font-size:11px">rover</code> for publishing and checking subgraph schemas in CI. No Apollo account, no API keys to Apollo's cloud. Works completely offline.</p>
+        <div class="callout-tags"><span class="ctag">schema registry</span><span class="ctag">field analytics</span><span class="ctag">CI check</span><span class="ctag">self-hosted</span><span class="ctag">Docker Compose</span></div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <div class="callout-head">
+        <div class="callout-icon" style="background:rgba(26,79,160,0.1)">🔍</div>
+        <div>
+          <h4>graphql-inspector</h4>
+          <div class="callout-lic"><span class="cell-lic lic-mit">MIT</span> · github.com/kamilkisiela/graphql-inspector</div>
+        </div>
+      </div>
+      <div class="callout-body">
+        <p><strong>Replaces: rover subgraph check</strong></p>
+        <p>CLI that diffs two SDL files and classifies every change as SAFE, DANGEROUS, or BREAKING. Fails the CI pipeline on breaking changes. No account required — runs entirely from the SDL file on disk.</p>
+        <p>GitHub Action available. Supports custom rules. Can validate operations against a schema (catches client-side breaks too).</p>
+        <div class="callout-tags"><span class="ctag">breaking change CI</span><span class="ctag">no account</span><span class="ctag">offline</span><span class="ctag">GitHub Action</span><span class="ctag">SDL diff</span></div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <div class="callout-head">
+        <div class="callout-icon" style="background:rgba(13,115,119,0.1)">⚡</div>
+        <div>
+          <h4>The Guild Conductor</h4>
+          <div class="callout-lic"><span class="cell-lic lic-apache">Apache 2.0</span> · the-guild.dev/conductor</div>
+        </div>
+      </div>
+      <div class="callout-body">
+        <p><strong>Replaces: Apollo Router (paid features)</strong></p>
+        <p>A fully open-source GraphQL gateway with federation support, plugin system, rate limiting, APQ (persisted queries), JWT auth, and request deduplication — ALL features included, no SaaS plan required.</p>
+        <p>Single binary or Docker container. Config via YAML. Actively maintained by The Guild (same team that maintains graphql-yoga, graphql-tools, graphql-inspector).</p>
+        <div class="callout-tags"><span class="ctag">federation gateway</span><span class="ctag">APQ built-in</span><span class="ctag">rate limiting</span><span class="ctag">JWT auth</span><span class="ctag">YAML config</span></div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <div class="callout-head">
+        <div class="callout-icon" style="background:rgba(26,79,160,0.1)">🔭</div>
+        <div>
+          <h4>OpenTelemetry + Jaeger</h4>
+          <div class="callout-lic"><span class="cell-lic lic-apache">Apache 2.0</span> · CNCF graduated</div>
+        </div>
+      </div>
+      <div class="callout-body">
+        <p><strong>Replaces: Apollo Studio Tracing</strong></p>
+        <p>OTEL instruments every resolver via <code style="font-family:var(--mono);font-size:11px">@envelop/opentelemetry</code> plugin. Each resolver call emits a span with timing, errors, and field name. Jaeger collects these spans and renders resolver flame graphs — identical UX to Apollo Studio tracing, fully self-hosted.</p>
+        <div class="callout-tags"><span class="ctag">resolver flame graph</span><span class="ctag">self-hosted</span><span class="ctag">CNCF</span><span class="ctag">k8s native</span><span class="ctag">GDPR safe</span></div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <div class="callout-head">
+        <div class="callout-icon" style="background:rgba(26,107,58,0.1)">🧘</div>
+        <div>
+          <h4>graphql-yoga + envelop</h4>
+          <div class="callout-lic"><span class="cell-lic lic-mit">MIT</span> · the-guild.dev/graphql-yoga</div>
+        </div>
+      </div>
+      <div class="callout-body">
+        <p><strong>Replaces: @apollo/server + @apollo/subgraph</strong></p>
+        <p>graphql-yoga is a fully featured GraphQL server (Node.js, Deno, Bun, Edge). envelop is a plugin system that adds auth, tracing, caching, rate limiting, and depth limiting without touching resolver code.</p>
+        <p>Federation spec support via <code style="font-family:var(--mono);font-size:11px">@envelop/federation</code>. Zero Apollo dependency.</p>
+        <div class="callout-tags"><span class="ctag">server runtime</span><span class="ctag">plugin system</span><span class="ctag">federation</span><span class="ctag">edge runtime</span><span class="ctag">zero Apollo</span></div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <div class="callout-head">
+        <div class="callout-icon" style="background:rgba(180,83,9,0.1)">📊</div>
+        <div>
+          <h4>Prometheus + Grafana Stack</h4>
+          <div class="callout-lic"><span class="cell-lic lic-apache">Apache 2.0</span> + <span class="cell-lic lic-mpl">AGPL</span></div>
+        </div>
+      </div>
+      <div class="callout-body">
+        <p><strong>Replaces: Apollo GraphOS dashboards + PagerDuty</strong></p>
+        <p>Prometheus scrapes custom metrics from Conductor (GQL ops/sec, cache hit rate, error rate per subgraph). Grafana renders SLA dashboards with P50/P95/P99 latency panels. Alertmanager handles on-call routing — same as PagerDuty but self-hosted.</p>
+        <div class="callout-tags"><span class="ctag">SLA dashboard</span><span class="ctag">P95 alerts</span><span class="ctag">self-hosted</span><span class="ctag">Alertmanager</span><span class="ctag">custom metrics</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── CODE EXAMPLES ── -->
+<div class="section" id="code">
+  <div class="eyebrow">Implementation</div>
+  <div class="sec-title">OSS Configuration Examples</div>
+  <div class="sec-sub">Real, working configuration using only open-source tools. No Apollo account, no API keys, no SaaS billing.</div>
+
+  <div class="code-block">
+    <div class="ctab-bar">
+      <div class="ctab on" onclick="sw(this,'c1')"><div class="oss-dot"></div>Conductor Gateway</div>
+      <div class="ctab" onclick="sw(this,'c2')"><div class="oss-dot"></div>graphql-inspector CI</div>
+      <div class="ctab" onclick="sw(this,'c3')"><div class="oss-dot"></div>graphql-yoga + envelop</div>
+      <div class="ctab" onclick="sw(this,'c4')"><div class="oss-dot"></div>Hive schema publish</div>
+      <div class="ctab" onclick="sw(this,'c5')"><div class="oss-dot"></div>OTEL + Jaeger tracing</div>
+      <div class="ctab" onclick="sw(this,'c6')"><div class="oss-dot"></div>Hive Docker Compose</div>
+    </div>
+
+    <div class="cpanel on" id="c1">
+<pre><span class="c"># conductor.yaml — The Guild Conductor (Apache 2.0)</span>
+<span class="c"># Replaces Apollo Router + GraphOS paid features</span>
+
+server:
+  port: <span class="num">4000</span>
+  host: <span class="s">0.0.0.0</span>
+
+supergraph:
+  sources:
+    - type: <span class="s">graphql</span>
+      name: <span class="s">absence</span>
+      url: <span class="s">http://absence-svc:4001/graphql</span>
+    - type: <span class="s">graphql</span>
+      name: <span class="s">balances</span>
+      url: <span class="s">http://balances-svc:4002/graphql</span>
+    - type: <span class="s">graphql</span>
+      name: <span class="s">history</span>
+      url: <span class="s">http://history-svc:4003/graphql</span>
+
+plugins:
+  <span class="c"># JWT auth — fully OSS, no GraphOS account needed</span>
+  - type: <span class="s">jwt_auth</span>
+    config:
+      jwks_url: <span class="s">http://auth-service/jwks</span>
+      header: <span class="s">Authorization</span>
+      prefix: <span class="s">Bearer</span>
+
+  <span class="c"># Rate limiting — built-in, no paid tier</span>
+  - type: <span class="s">rate_limit</span>
+    config:
+      per_ip: <span class="num">1000</span>
+      window_seconds: <span class="num">1</span>
+
+  <span class="c"># APQ (Automatic Persisted Queries) — built-in, free</span>
+  - type: <span class="s">persisted_queries</span>
+    config:
+      store: <span class="s">redis</span>
+      redis_url: <span class="s">redis://redis:6379</span>
+
+  <span class="c"># Depth + complexity — built-in</span>
+  - type: <span class="s">graphql_validation</span>
+    config:
+      max_depth: <span class="num">8</span>
+      max_complexity: <span class="num">500</span>
+
+  <span class="c"># OpenTelemetry — exports to Jaeger (self-hosted)</span>
+  - type: <span class="s">opentelemetry</span>
+    config:
+      exporter: <span class="s">otlp</span>
+      endpoint: <span class="s">http://jaeger:4317</span>
+
+  <span class="c"># Prometheus metrics — for Grafana dashboards</span>
+  - type: <span class="s">prometheus</span>
+    config:
+      path: <span class="s">/metrics</span>
+      port: <span class="num">9090</span></pre>
+    </div>
+
+    <div class="cpanel" id="c2">
+<pre><span class="c"># .github/workflows/schema-check.yml</span>
+<span class="c"># Uses graphql-inspector (MIT) — NO Apollo account needed</span>
+
+name: GraphQL Schema Check
+on: [pull_request]
+
+jobs:
+  schema-diff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+
+      <span class="c"># Install graphql-inspector CLI (MIT license)</span>
+      - run: npm install -g @graphql-inspector/cli
+
+      <span class="c"># Diff absence subgraph against main branch SDL</span>
+      - name: Check absence subgraph for breaking changes
+        run: |
+          git show origin/main:absence/schema.graphql > /tmp/old-absence.graphql
+          graphql-inspector diff \
+            /tmp/old-absence.graphql \
+            absence/schema.graphql \
+            --fail-on-breaking-change
+          <span class="c"># EXIT 1 on BREAKING changes · passes on SAFE additions</span>
+
+      - name: Check balances subgraph
+        run: |
+          git show origin/main:balances/schema.graphql > /tmp/old-bal.graphql
+          graphql-inspector diff /tmp/old-bal.graphql balances/schema.graphql \
+            --fail-on-breaking-change
+
+      - name: Check history subgraph
+        run: |
+          git show origin/main:history/schema.graphql > /tmp/old-hist.graphql
+          graphql-inspector diff /tmp/old-hist.graphql history/schema.graphql \
+            --fail-on-breaking-change
+
+      <span class="c"># Also validate all client operations against new schema</span>
+      - name: Validate client operations
+        run: |
+          graphql-inspector validate \
+            'src/**/*.graphql' \
+            absence/schema.graphql
+
+      <span class="c"># Publish SDL to self-hosted Hive (replaces rover push)</span>
+      - name: Publish schema to Hive registry
+        if: github.ref == 'refs/heads/main'
+        run: |
+          hive schema:publish absence/schema.graphql \
+            --service absence \
+            --url http://absence-svc:4001/graphql
+        env:
+          HIVE_TOKEN: ${{ secrets.HIVE_TOKEN }}  <span class="c"># your own Hive instance</span>
+          HIVE_REGISTRY: <span class="s">http://hive.internal:3000</span>  <span class="c"># self-hosted</span></pre>
+    </div>
+
+    <div class="cpanel" id="c3">
+<pre><span class="c">// absence-server.ts — graphql-yoga (MIT) + envelop plugins (MIT)</span>
+<span class="c">// Replaces @apollo/server entirely</span>
+<span class="k">import</span> { createYoga } <span class="k">from</span> <span class="s">'graphql-yoga'</span>
+<span class="k">import</span> { useOpenTelemetry } <span class="k">from</span> <span class="s">'@envelop/opentelemetry'</span>
+<span class="k">import</span> { useDepthLimit } <span class="k">from</span> <span class="s">'@envelop/depth-limit'</span>
+<span class="k">import</span> { useRateLimiter } <span class="k">from</span> <span class="s">'@envelop/rate-limiter'</span>
+<span class="k">import</span> { useHive } <span class="k">from</span> <span class="s">'@graphql-hive/client'</span>
+<span class="k">import</span> { schema } <span class="k">from</span> <span class="s">'./schema'</span>
+
+<span class="k">const</span> yoga = <span class="fn">createYoga</span>({
+  schema,
+  plugins: [
+    <span class="c">// OTEL tracing → Jaeger (replaces Apollo Studio tracing)</span>
+    <span class="fn">useOpenTelemetry</span>({
+      resolvers: <span class="k">true</span>,      <span class="c">// per-resolver spans</span>
+      variables: <span class="k">true</span>,      <span class="c">// log query variables</span>
+      result: <span class="k">false</span>,        <span class="c">// don't log full result (PII)</span>
+    }),
+
+    <span class="c">// Depth limit (replaces Apollo Router paid feature)</span>
+    <span class="fn">useDepthLimit</span>({ maxDepth: <span class="num">8</span> }),
+
+    <span class="c">// Field usage reporting → self-hosted Hive</span>
+    <span class="c">// (replaces Apollo GraphOS usage analytics)</span>
+    <span class="fn">useHive</span>({
+      enabled: <span class="k">true</span>,
+      token: process.env.HIVE_TOKEN,   <span class="c">// your own Hive instance</span>
+      reporting: {
+        endpoint: <span class="s">'http://hive.internal:3000/registry/internal'</span>,
+        author: <span class="s">'absence-service'</span>,
+        commit: process.env.GIT_SHA,
+      },
+      usage: {
+        endpoint: <span class="s">'http://hive.internal:3000/usage'</span>,
+        sampleRate: <span class="num">1.0</span>,     <span class="c">// 100% of operations tracked</span>
+      },
+    }),
+
+    <span class="c">// Rate limiting per authenticated user</span>
+    <span class="fn">useRateLimiter</span>({
+      identifyFn: (ctx) => ctx.user?.id ?? ctx.req.ip,
+      config: { window: <span class="s">'1s'</span>, max: <span class="num">100</span> },
+    }),
+  ],
+})
+
+<span class="k">export</span> { yoga }</pre>
+    </div>
+
+    <div class="cpanel" id="c4">
+<pre><span class="c"># GraphQL Hive self-hosted setup (MIT license)</span>
+<span class="c"># Replaces Apollo GraphOS entirely</span>
+<span class="c"># Run on your own infra — no data leaves</span>
+
+<span class="c"># 1. Start Hive (single command)</span>
+docker compose -f hive-docker-compose.yml up -d
+<span class="c"># → Hive UI at http://localhost:3000</span>
+<span class="c"># → Usage API at http://localhost:3001</span>
+
+<span class="c"># 2. Create a project and get a token (one-time)</span>
+<span class="c">#    (in the Hive UI — no external account)</span>
+
+<span class="c"># 3. Publish schemas from CI (replaces rover push)</span>
+npx hive schema:publish absence/schema.graphql \
+  --service <span class="s">absence</span> \
+  --url <span class="s">http://absence-svc:4001/graphql</span> \
+  --author <span class="s">"ci-pipeline"</span> \
+  --commit <span class="s">"$GIT_SHA"</span>
+
+<span class="c"># 4. Check for breaking changes (replaces rover check)</span>
+npx hive schema:check absence/schema.graphql \
+  --service <span class="s">absence</span>
+<span class="c"># → EXIT 0 for safe changes</span>
+<span class="c"># → EXIT 1 with detailed diff for breaking changes</span>
+
+<span class="c"># 5. Fetch the composed supergraph SDL for the gateway</span>
+npx hive supergraph:fetch > supergraph.graphql
+
+<span class="c"># 6. Conductor gateway reads the SDL</span>
+<span class="c"># conductor.yaml:</span>
+supergraph:
+  schema_file: <span class="s">/etc/conductor/supergraph.graphql</span>
+  <span class="c"># OR poll Hive directly:</span>
+  source:
+    type: <span class="s">hive</span>
+    endpoint: <span class="s">http://hive.internal:3000/supergraph</span>
+    poll_interval_seconds: <span class="num">30</span></pre>
+    </div>
+
+    <div class="cpanel" id="c5">
+<pre><span class="c">// otel-setup.ts — OpenTelemetry + Jaeger (Apache 2.0)</span>
+<span class="c">// Replaces Apollo Studio field-level tracing</span>
+<span class="k">import</span> { NodeSDK } <span class="k">from</span> <span class="s">'@opentelemetry/sdk-node'</span>
+<span class="k">import</span> { OTLPTraceExporter } <span class="k">from</span> <span class="s">'@opentelemetry/exporter-trace-otlp-grpc'</span>
+<span class="k">import</span> { Resource } <span class="k">from</span> <span class="s">'@opentelemetry/resources'</span>
+<span class="k">import</span> { SEMRESATTRS_SERVICE_NAME } <span class="k">from</span> <span class="s">'@opentelemetry/semantic-conventions'</span>
+
+<span class="k">const</span> sdk = <span class="k">new</span> <span class="t">NodeSDK</span>({
+  resource: <span class="k">new</span> <span class="t">Resource</span>({
+    [SEMRESATTRS_SERVICE_NAME]: <span class="s">'absence-subgraph'</span>,
+  }),
+  traceExporter: <span class="k">new</span> <span class="t">OTLPTraceExporter</span>({
+    url: <span class="s">'http://jaeger:4317'</span>,  <span class="c">// self-hosted Jaeger</span>
+  }),
+})
+sdk.<span class="fn">start</span>()
+
+<span class="c">// envelop plugin adds resolver-level spans automatically</span>
+<span class="c">// Each resolver gets a span: name, duration, errors, variables</span>
+<span class="c">// Visible in Jaeger UI as a flame graph per operation</span>
+
+<span class="c"># Jaeger docker-compose.yml (Apache 2.0)</span>
+services:
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - <span class="s">"16686:16686"</span>   <span class="c"># Jaeger UI</span>
+      - <span class="s">"4317:4317"</span>     <span class="c"># OTLP gRPC receiver</span>
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+
+<span class="c"># → Jaeger UI at http://localhost:16686</span>
+<span class="c"># → Search by operationName "getEmployee"</span>
+<span class="c"># → See per-resolver waterfall: which field took 340ms</span>
+<span class="c"># → IDENTICAL to Apollo Studio tracing. Zero cost.</span></pre>
+    </div>
+
+    <div class="cpanel" id="c6">
+<pre><span class="c"># hive-docker-compose.yml — self-host GraphQL Hive (MIT)</span>
+<span class="c"># Complete Apollo GraphOS replacement on your own infra</span>
+
+services:
+  hive-app:
+    image: ghcr.io/kamilkisiela/graphql-hive/app:latest
+    ports: [<span class="s">"3000:3000"</span>]
+    environment:
+      DATABASE_URL: <span class="s">postgresql://hive:hive@postgres:5432/hive</span>
+      REDIS_HOST: <span class="s">redis</span>
+
+  hive-usage:
+    image: ghcr.io/kamilkisiela/graphql-hive/usage:latest
+    ports: [<span class="s">"3001:3001"</span>]
+    <span class="c"># Receives usage reports from your servers</span>
+
+  hive-usage-ingestor:
+    image: ghcr.io/kamilkisiela/graphql-hive/usage-ingestor:latest
+    <span class="c"># Processes usage data and stores in ClickHouse</span>
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    <span class="c"># Stores field-level usage analytics (Apache 2.0)</span>
+
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: hive
+      POSTGRES_USER: hive
+      POSTGRES_PASSWORD: hive
+
+  redis:
+    image: redis:7-alpine
+
+<span class="c"># What you get (ALL replacing Apollo GraphOS):</span>
+<span class="c"># ✓ Schema registry with full version history</span>
+<span class="c"># ✓ Field-level usage analytics (which fields clients query)</span>
+<span class="c"># ✓ Breaking change detection (replaces rover check)</span>
+<span class="c"># ✓ Supergraph composition UI</span>
+<span class="c"># ✓ SDL explorer and documentation</span>
+<span class="c"># ✓ Usage-based deprecation recommendations</span>
+<span class="c"># ✓ Alerting on schema drift</span>
+<span class="c"># → $0 monthly. Your data. Your infra.</span></pre>
+    </div>
+  </div>
+</div>
+
+<!-- ── METRICS ── -->
+<div class="section" id="metrics">
+  <div class="eyebrow">Impact Summary</div>
+  <div class="sec-title">OSS Migration — What Changes</div>
+  <div class="sec-sub">Switching from the proprietary Apollo stack to the open-source equivalents delivers identical functionality with zero SaaS costs and full data sovereignty.</div>
+
+  <div class="metrics">
+    <div class="mcard">
+      <div class="mcard-before">Before (Apollo GraphOS)</div>
+      <div class="mcard-val mv-old">$299+</div>
+      <span class="mcard-arrow">↓</span>
+      <div class="mcard-val mv-new">$0</div>
+      <div class="mcard-after">After (Hive + OSS)</div>
+      <div class="mcard-label">Monthly SaaS bill</div>
+    </div>
+    <div class="mcard">
+      <div class="mcard-before">Before</div>
+      <div class="mcard-val mv-old">Apollo</div>
+      <span class="mcard-arrow">↓</span>
+      <div class="mcard-val mv-new">Your infra</div>
+      <div class="mcard-after">After</div>
+      <div class="mcard-label">Where traces &amp; schemas live</div>
+    </div>
+    <div class="mcard">
+      <div class="mcard-before">Before</div>
+      <div class="mcard-val mv-old">5</div>
+      <span class="mcard-arrow">↓</span>
+      <div class="mcard-val mv-new">0</div>
+      <div class="mcard-after">After</div>
+      <div class="mcard-label">Proprietary tool dependencies</div>
+    </div>
+    <div class="mcard">
+      <div class="mcard-before">Before</div>
+      <div class="mcard-val mv-old">rover</div>
+      <span class="mcard-arrow">→</span>
+      <div class="mcard-val mv-new">inspector</div>
+      <div class="mcard-after">After</div>
+      <div class="mcard-label">CI schema check tool</div>
+    </div>
+    <div class="mcard">
+      <div class="mcard-before">Before</div>
+      <div class="mcard-val mv-old">Cloud only</div>
+      <span class="mcard-arrow">↓</span>
+      <div class="mcard-val mv-new">Self-host</div>
+      <div class="mcard-after">After</div>
+      <div class="mcard-label">Schema registry location</div>
+    </div>
+    <div class="mcard">
+      <div class="mcard-before">Before</div>
+      <div class="mcard-val mv-old">Prop.</div>
+      <span class="mcard-arrow">↓</span>
+      <div class="mcard-val mv-new">MIT/Apache</div>
+      <div class="mcard-after">After</div>
+      <div class="mcard-label">All tool licenses</div>
+    </div>
+    <div class="mcard">
+      <div class="mcard-before">Before</div>
+      <div class="mcard-val mv-old">✗</div>
+      <span class="mcard-arrow">↑</span>
+      <div class="mcard-val mv-new">✓</div>
+      <div class="mcard-after">After</div>
+      <div class="mcard-label">GDPR data sovereignty</div>
+    </div>
+    <div class="mcard">
+      <div class="mcard-before">Before</div>
+      <div class="mcard-val mv-old">Apollo</div>
+      <span class="mcard-arrow">↓</span>
+      <div class="mcard-val mv-new">The Guild</div>
+      <div class="mcard-after">After</div>
+      <div class="mcard-label">Ecosystem vendor</div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div>
+    <strong>100% Open Source GraphQL Architecture — Time Away Service</strong><br>
+    All tools MIT, Apache 2.0, or AGPL licensed · Self-hosted · Zero Apollo GraphOS dependency<br>
+    Corrections applied: Apollo GraphOS → Hive · Apollo Studio → Jaeger/OTEL · rover → graphql-inspector · Apollo Router paid → Conductor
+    <div class="footer-oss-list">
+      <span class="footer-oss-pill">graphql-yoga MIT</span>
+      <span class="footer-oss-pill">GraphQL Hive MIT</span>
+      <span class="footer-oss-pill">graphql-inspector MIT</span>
+      <span class="footer-oss-pill">Conductor Apache 2.0</span>
+      <span class="footer-oss-pill">GraphQL Mesh MIT</span>
+      <span class="footer-oss-pill">envelop MIT</span>
+      <span class="footer-oss-pill">OpenTelemetry Apache 2.0</span>
+      <span class="footer-oss-pill">Jaeger Apache 2.0</span>
+      <span class="footer-oss-pill">Prometheus Apache 2.0</span>
+      <span class="footer-oss-pill">Grafana AGPL</span>
+      <span class="footer-oss-pill">DataLoader MIT</span>
+      <span class="footer-oss-pill">Redis BSD</span>
+      <span class="footer-oss-pill">graphql-codegen MIT</span>
+    </div>
+  </div>
+  <div style="text-align:right">
+    <div style="font-size:44px;font-weight:700;letter-spacing:-0.05em;color:rgba(250,250,247,0.15);line-height:1">$0/mo</div>
+    <div style="font-family:var(--mono);font-size:11px;color:rgba(250,250,247,0.3)">SaaS cost after migration</div>
+  </div>
+</footer>
+
+<script>
+function sw(tab, id) {
+  document.querySelectorAll('.cpanel').forEach(p => p.classList.remove('on'));
+  document.querySelectorAll('.ctab').forEach(t => t.classList.remove('on'));
+  document.getElementById(id).classList.add('on');
+  tab.classList.add('on');
+}
+
+// Scroll fade-in
+const io = new IntersectionObserver(entries => {
+  entries.forEach((e, i) => {
+    if (e.isIntersecting) {
+      setTimeout(() => {
+        e.target.style.opacity = '1';
+        e.target.style.transform = 'translateY(0)';
+      }, 40);
+    }
+  });
+}, { threshold: 0.05 });
+
+document.querySelectorAll('.callout, .mcard, .layer, .tool').forEach(el => {
+  el.style.opacity = '0';
+  el.style.transform = 'translateY(12px)';
+  el.style.transition = 'opacity 0.45s ease, transform 0.45s ease';
+  io.observe(el);
+});
+</script>
+</body>
+</html>

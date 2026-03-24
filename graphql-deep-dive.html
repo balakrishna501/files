@@ -1,0 +1,1329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GraphQL Deep Dive — 9 Improvements Explained</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,600;12..96,800&family=Azeret+Mono:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f2eb;
+  --bg2:#ede9e0;
+  --surface:#ffffff;
+  --ink:#1a1814;
+  --ink2:#3d3a33;
+  --muted:#7c7868;
+  --border:#d4cfbf;
+  --accent:#c0392b;
+  --accent2:#2563a8;
+  --accent3:#1a7a4a;
+  --amber:#d97706;
+  --purple:#6d28d9;
+  --font-head:'Bricolage Grotesque',sans-serif;
+  --font-mono:'Azeret Mono',monospace;
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-head);background:var(--bg);color:var(--ink);overflow-x:hidden;line-height:1.5}
+
+/* HEADER */
+header{
+  background:var(--ink);color:var(--bg);
+  padding:18px 48px;display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100;
+  border-bottom:3px solid var(--accent);
+}
+.logo{font-size:15px;font-weight:800;letter-spacing:-0.02em}
+.logo span{color:var(--accent)}
+.header-nav{display:flex;gap:6px}
+.nav-pill{
+  font-family:var(--font-mono);font-size:10px;font-weight:400;
+  padding:5px 12px;border-radius:20px;
+  border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.6);
+  text-decoration:none;transition:all 0.2s;letter-spacing:0.05em;cursor:pointer;background:none;
+}
+.nav-pill:hover,.nav-pill.active{background:var(--accent);border-color:var(--accent);color:#fff}
+
+/* HERO STRIP */
+.hero{
+  background:var(--ink);color:var(--bg);
+  padding:64px 48px 56px;
+  border-bottom:1px solid rgba(255,255,255,0.08);
+  position:relative;overflow:hidden;
+}
+.hero::after{
+  content:'GraphQL';
+  position:absolute;right:-32px;top:-24px;
+  font-size:200px;font-weight:800;letter-spacing:-0.05em;
+  color:rgba(255,255,255,0.03);pointer-events:none;white-space:nowrap;
+}
+.hero-kicker{
+  font-family:var(--font-mono);font-size:11px;color:var(--accent);
+  letter-spacing:0.15em;text-transform:uppercase;margin-bottom:20px;
+  display:flex;align-items:center;gap:10px;
+}
+.hero-kicker::before{content:'';width:28px;height:2px;background:var(--accent)}
+.hero h1{font-size:clamp(36px,5.5vw,72px);font-weight:800;line-height:0.95;letter-spacing:-0.03em;margin-bottom:24px}
+.hero h1 em{font-style:italic;font-weight:300;color:rgba(245,242,235,0.45)}
+.hero-sub{font-family:var(--font-mono);font-size:13px;font-weight:300;color:rgba(245,242,235,0.55);max-width:620px;line-height:1.9}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:32px}
+.chip{
+  background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);
+  padding:5px 14px;border-radius:4px;
+  font-family:var(--font-mono);font-size:11px;color:rgba(255,255,255,0.6);letter-spacing:0.04em;
+}
+.chip.red{background:rgba(192,57,43,0.2);border-color:rgba(192,57,43,0.4);color:#e8806e}
+.chip.green{background:rgba(26,122,74,0.2);border-color:rgba(26,122,74,0.4);color:#4ade80}
+
+/* IMPROVEMENT SECTION */
+.improvement{
+  border-bottom:2px solid var(--border);
+  scroll-margin-top:70px;
+}
+.imp-header{
+  display:grid;grid-template-columns:72px 1fr auto;align-items:center;
+  gap:24px;padding:40px 48px 32px;
+  border-bottom:1px solid var(--border);
+  background:var(--surface);
+  cursor:pointer;
+  transition:background 0.2s;
+}
+.imp-header:hover{background:var(--bg)}
+.imp-num{
+  font-size:56px;font-weight:800;color:var(--border);line-height:1;
+  letter-spacing:-0.04em;transition:color 0.3s;
+}
+.imp-header:hover .imp-num,.imp-open .imp-num{color:var(--accent)}
+.imp-title-block{}
+.imp-label{
+  font-family:var(--font-mono);font-size:10px;letter-spacing:0.12em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:6px;
+}
+.imp-title{font-size:clamp(18px,2.5vw,26px);font-weight:800;letter-spacing:-0.02em;line-height:1.15}
+.imp-badges{display:flex;gap:8px;margin-top:10px}
+.badge{
+  font-family:var(--font-mono);font-size:10px;font-weight:400;
+  padding:3px 10px;border-radius:3px;letter-spacing:0.05em;
+}
+.b-critical{background:#fef2f0;color:var(--accent);border:1px solid rgba(192,57,43,0.25)}
+.b-high{background:#fffbf0;color:var(--amber);border:1px solid rgba(217,119,6,0.25)}
+.b-medium{background:#f0f7f3;color:var(--accent3);border:1px solid rgba(26,122,74,0.2)}
+.b-performance{background:#eff6ff;color:var(--accent2);border:1px solid rgba(37,99,168,0.2)}
+.imp-toggle{
+  width:32px;height:32px;border-radius:50%;
+  border:1.5px solid var(--border);background:transparent;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:all 0.2s;font-size:16px;color:var(--muted);
+  flex-shrink:0;
+}
+.imp-header:hover .imp-toggle{border-color:var(--ink);color:var(--ink)}
+
+.imp-body{
+  display:none;
+  padding:0 48px 48px;
+  background:var(--surface);
+}
+.imp-body.open{display:block}
+
+/* Problem / Solution layout */
+.ps-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:32px}
+.ps-box{border-radius:4px;overflow:hidden}
+.ps-head{
+  padding:14px 20px;font-size:12px;font-weight:600;
+  letter-spacing:0.08em;text-transform:uppercase;
+  display:flex;align-items:center;gap:8px;
+}
+.ps-problem .ps-head{background:#fef2f0;color:var(--accent);border-bottom:2px solid rgba(192,57,43,0.2)}
+.ps-solution .ps-head{background:#f0f7f3;color:var(--accent3);border-bottom:2px solid rgba(26,122,74,0.2)}
+.ps-body{padding:20px;background:var(--bg);border:1px solid var(--border);border-top:none}
+.ps-body p{font-size:14px;color:var(--ink2);line-height:1.8;margin-bottom:12px}
+.ps-body p:last-child{margin-bottom:0}
+.ps-list{list-style:none;padding:0}
+.ps-list li{
+  font-family:var(--font-mono);font-size:12px;color:var(--muted);
+  line-height:1.7;padding:6px 0;
+  border-bottom:1px solid var(--border);
+  display:flex;gap:10px;align-items:flex-start;
+}
+.ps-list li:last-child{border:none}
+.ps-list li::before{content:'→';color:var(--accent3);flex-shrink:0;margin-top:1px}
+.ps-list.problem li::before{content:'✗';color:var(--accent)}
+
+/* Diagrams */
+.diagrams{margin-top:32px}
+.diag-label{
+  font-family:var(--font-mono);font-size:11px;color:var(--muted);
+  letter-spacing:0.1em;text-transform:uppercase;margin-bottom:12px;
+  padding-bottom:8px;border-bottom:1px solid var(--border);
+}
+.diag-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:16px}
+.diag-box{background:var(--bg2);border:1px solid var(--border);border-radius:4px;overflow:hidden}
+.diag-title{
+  padding:10px 16px;font-family:var(--font-mono);font-size:11px;
+  display:flex;align-items:center;gap:8px;
+}
+.diag-old .diag-title{background:#fef2f0;color:var(--accent);border-bottom:1px solid rgba(192,57,43,0.2)}
+.diag-new .diag-title{background:#f0f7f3;color:var(--accent3);border-bottom:1px solid rgba(26,122,74,0.2)}
+.diag-box svg{display:block;width:100%;height:auto}
+
+/* Code block */
+.code-block{
+  margin-top:24px;background:var(--ink);border-radius:4px;overflow:hidden;
+}
+.code-head2{
+  padding:10px 20px;background:rgba(255,255,255,0.05);
+  font-family:var(--font-mono);font-size:11px;color:rgba(255,255,255,0.4);
+  border-bottom:1px solid rgba(255,255,255,0.08);
+  display:flex;gap:8px;align-items:center;
+}
+.dot-r{width:8px;height:8px;border-radius:50%;background:#ff5f57}
+.dot-y{width:8px;height:8px;border-radius:50%;background:#ffbd2e}
+.dot-g{width:8px;height:8px;border-radius:50%;background:#28ca41}
+pre{
+  padding:20px;font-family:var(--font-mono);font-size:12px;font-weight:300;
+  color:#c8c5bb;line-height:1.85;overflow-x:auto;
+}
+.kw{color:#e06c75}.ty{color:#61dafb}.fn2{color:#e5c07b}.str{color:#98c379}
+.cm{color:#5c6370;font-style:italic}.op{color:#abb2bf}
+
+/* Implementation steps */
+.impl-steps{margin-top:24px}
+.impl-step{
+  display:flex;gap:16px;padding:16px 0;border-bottom:1px solid var(--border);
+  align-items:flex-start;
+}
+.impl-step:last-child{border:none}
+.step-icon{
+  width:32px;height:32px;border-radius:6px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:800;
+}
+.step-content h5{font-size:14px;font-weight:600;margin-bottom:4px}
+.step-content p{font-family:var(--font-mono);font-size:12px;color:var(--muted);line-height:1.7}
+
+/* Metric bar */
+.metrics{display:flex;gap:16px;margin-top:24px;flex-wrap:wrap}
+.metric{
+  flex:1;min-width:120px;background:var(--bg2);border:1px solid var(--border);
+  border-radius:4px;padding:16px;text-align:center;
+}
+.metric-val{font-size:28px;font-weight:800;line-height:1}
+.metric-label{font-family:var(--font-mono);font-size:10px;color:var(--muted);margin-top:4px;letter-spacing:0.06em;text-transform:uppercase}
+.m-red{color:var(--accent)}.m-green{color:var(--accent3)}.m-blue{color:var(--accent2)}.m-amber{color:var(--amber)}
+
+/* FOOTER */
+footer{
+  background:var(--ink);color:rgba(255,255,255,0.4);
+  padding:40px 48px;
+  font-family:var(--font-mono);font-size:12px;line-height:1.8;
+  border-top:3px solid var(--accent);
+}
+footer strong{color:rgba(255,255,255,0.8)}
+
+@media(max-width:900px){
+  header,footer{padding:16px 20px}
+  .hero{padding:40px 20px}
+  .imp-header{padding:24px 20px;grid-template-columns:48px 1fr auto;gap:12px}
+  .imp-body{padding:0 20px 32px}
+  .ps-grid,.diag-grid{grid-template-columns:1fr}
+  .imp-num{font-size:36px}
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">GQL/<span>ARCH</span> Deep Dive</div>
+  <div class="header-nav">
+    <button class="nav-pill" onclick="expandAll()">Expand All</button>
+    <button class="nav-pill" onclick="collapseAll()">Collapse All</button>
+  </div>
+</header>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-kicker">Time Away Service · System Design Analysis</div>
+  <h1>9 GraphQL Improvements<br><em>Problem → Solution → Diagram</em></h1>
+  <p class="hero-sub">Each improvement below shows the exact problem in the current REST architecture, the GraphQL solution, old vs new flow diagrams, and implementation code. Based on 15 years of GraphQL system design experience.</p>
+  <div class="chips">
+    <div class="chip red">Current: 11 steps / request</div>
+    <div class="chip green">After: 5 steps / request</div>
+    <div class="chip">REST → GraphQL Federation</div>
+    <div class="chip">Apollo Router v2</div>
+    <div class="chip">DataLoader + Subscriptions</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- IMPROVEMENT 1 -->
+<!-- ═══════════════════════════════════════ -->
+<div class="improvement" id="imp1">
+  <div class="imp-header imp-open" onclick="toggle(this)">
+    <div class="imp-num">01</div>
+    <div class="imp-title-block">
+      <div class="imp-label">Endpoint Design</div>
+      <div class="imp-title">Single GraphQL endpoint replaces versioned REST routes</div>
+      <div class="imp-badges">
+        <span class="badge b-critical">Critical</span>
+        <span class="badge b-performance">Breaking change prevention</span>
+      </div>
+    </div>
+    <div class="imp-toggle">−</div>
+  </div>
+  <div class="imp-body open">
+    <div class="ps-grid">
+      <div class="ps-box ps-problem">
+        <div class="ps-head">🔴 The Problem</div>
+        <div class="ps-body">
+          <p>The current architecture uses <code style="background:rgba(192,57,43,0.1);padding:2px 6px;border-radius:3px;font-family:var(--font-mono);font-size:12px">POST /api/v1/timeaway/{blah}</code> as the endpoint contract. This creates rigid coupling between client and server.</p>
+          <ul class="ps-list problem">
+            <li>Every new field or feature requires a new endpoint or a version bump (/v2/, /v3/)</li>
+            <li>Mobile and web clients receive the same response shape even if they need different data</li>
+            <li>Over-fetching: mobile gets 40 fields but only uses 8</li>
+            <li>Under-fetching: dashboard needs data from 3 endpoints, making 3 separate calls</li>
+            <li>API contracts are implicit — no compile-time guarantees for consumers</li>
+          </ul>
+        </div>
+      </div>
+      <div class="ps-box ps-solution">
+        <div class="ps-head">🟢 The Solution</div>
+        <div class="ps-body">
+          <p>GraphQL exposes a single <code style="background:rgba(26,122,74,0.1);padding:2px 6px;border-radius:3px;font-family:var(--font-mono);font-size:12px">POST /graphql</code> endpoint. Clients send a query document specifying exactly the fields they need — the server returns exactly that shape, nothing more.</p>
+          <ul class="ps-list">
+            <li>Mobile query requests 8 fields; web query requests 40 — same endpoint, different shapes</li>
+            <li>New fields are additive — zero breaking changes, zero versioning</li>
+            <li>Deprecated fields marked in SDL, removed only when all consumers stop using them</li>
+            <li>Dashboard fetches absence + balance + history in a single query</li>
+            <li>SDL type system gives compile-time guarantees via codegen</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="diagrams">
+      <div class="diag-label">Architecture comparison — endpoint design</div>
+      <div class="diag-grid">
+        <div class="diag-box diag-old">
+          <div class="diag-title">⚠ Old: Multiple REST endpoints</div>
+          <svg viewBox="0 0 380 260" xmlns="http://www.w3.org/2000/svg">
+            <rect x="10" y="20" width="80" height="40" rx="5" fill="#fef2f0" stroke="#e8806e" stroke-width="1"/>
+            <text x="50" y="36" text-anchor="middle" font-family="Azeret Mono" font-size="10" fill="#c0392b">Mobile</text>
+            <text x="50" y="50" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#c0392b">App</text>
+            <!-- Three arrows to three endpoints -->
+            <line x1="90" y1="30" x2="140" y2="30" stroke="#e8806e" stroke-width="1.2" marker-end="url(#arr1)"/>
+            <line x1="90" y1="40" x2="140" y2="90" stroke="#e8806e" stroke-width="1.2" marker-end="url(#arr1)"/>
+            <line x1="90" y1="50" x2="140" y2="150" stroke="#e8806e" stroke-width="1.2" marker-end="url(#arr1)"/>
+            <!-- Endpoints -->
+            <rect x="140" y="14" width="140" height="30" rx="4" fill="#fef2f0" stroke="#e8806e" stroke-width="1"/>
+            <text x="210" y="24" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#c0392b">/v1/timeaway/submit</text>
+            <text x="210" y="36" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#999">POST — 22 fields returned</text>
+            <rect x="140" y="74" width="140" height="30" rx="4" fill="#fef2f0" stroke="#e8806e" stroke-width="1"/>
+            <text x="210" y="84" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#c0392b">/v1/timeaway/balance</text>
+            <text x="210" y="96" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#999">GET — full payload</text>
+            <rect x="140" y="134" width="140" height="30" rx="4" fill="#fef2f0" stroke="#e8806e" stroke-width="1"/>
+            <text x="210" y="144" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#c0392b">/v2/timeaway/history</text>
+            <text x="210" y="156" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#999">GET — versioned</text>
+            <!-- Version hell note -->
+            <rect x="10" y="190" width="360" height="52" rx="4" fill="#fff8f7" stroke="#e8806e" stroke-width="1" stroke-dasharray="4 3"/>
+            <text x="190" y="207" text-anchor="middle" font-family="Azeret Mono" font-size="10" fill="#c0392b" font-weight="600">Problems</text>
+            <text x="190" y="220" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#999">3 calls for dashboard • Over-fetching on mobile</text>
+            <text x="190" y="233" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#999">Breaking changes require /v2/ • No type safety</text>
+            <defs><marker id="arr1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M2 2L8 5L2 8" fill="none" stroke="#e8806e" stroke-width="1.5"/></marker></defs>
+          </svg>
+        </div>
+        <div class="diag-box diag-new">
+          <div class="diag-title">✓ New: Single GraphQL endpoint</div>
+          <svg viewBox="0 0 380 260" xmlns="http://www.w3.org/2000/svg">
+            <defs><marker id="arr2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M2 2L8 5L2 8" fill="none" stroke="#1a7a4a" stroke-width="1.5"/></marker></defs>
+            <!-- Mobile -->
+            <rect x="10" y="70" width="80" height="40" rx="5" fill="#f0f7f3" stroke="#1a7a4a" stroke-width="1"/>
+            <text x="50" y="86" text-anchor="middle" font-family="Azeret Mono" font-size="10" fill="#1a7a4a">Mobile</text>
+            <text x="50" y="100" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#1a7a4a">query: 8 fields</text>
+            <!-- Web -->
+            <rect x="10" y="130" width="80" height="40" rx="5" fill="#eff6ff" stroke="#2563a8" stroke-width="1"/>
+            <text x="50" y="146" text-anchor="middle" font-family="Azeret Mono" font-size="10" fill="#2563a8">Web</text>
+            <text x="50" y="160" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#2563a8">query: 40 fields</text>
+            <!-- Arrows to single endpoint -->
+            <line x1="90" y1="90" x2="148" y2="110" stroke="#1a7a4a" stroke-width="1.5" marker-end="url(#arr2)"/>
+            <line x1="90" y1="150" x2="148" y2="130" stroke="#2563a8" stroke-width="1.5" marker-end="url(#arr2)"/>
+            <!-- Single endpoint -->
+            <rect x="150" y="95" width="130" height="45" rx="6" fill="#1a1814" stroke="#1a7a4a" stroke-width="1.5"/>
+            <text x="215" y="112" text-anchor="middle" font-family="Azeret Mono" font-size="11" fill="#4ade80" font-weight="600">POST /graphql</text>
+            <text x="215" y="127" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="rgba(255,255,255,0.4)">single endpoint · SDL typed</text>
+            <!-- Arrow to response -->
+            <line x1="280" y1="117" x2="318" y2="90" stroke="#1a7a4a" stroke-width="1.2" marker-end="url(#arr2)"/>
+            <line x1="280" y1="120" x2="318" y2="150" stroke="#2563a8" stroke-width="1.2" marker-end="url(#arr2)"/>
+            <!-- Responses -->
+            <rect x="320" y="70" width="50" height="30" rx="4" fill="#f0f7f3" stroke="#1a7a4a" stroke-width="1"/>
+            <text x="345" y="83" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#1a7a4a">8 fields</text>
+            <text x="345" y="94" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#999">exact shape</text>
+            <rect x="320" y="135" width="50" height="30" rx="4" fill="#eff6ff" stroke="#2563a8" stroke-width="1"/>
+            <text x="345" y="148" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#2563a8">40 fields</text>
+            <text x="345" y="159" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#999">exact shape</text>
+            <!-- Benefits -->
+            <rect x="10" y="190" width="360" height="52" rx="4" fill="#f0f7f3" stroke="#1a7a4a" stroke-width="1"/>
+            <text x="190" y="207" text-anchor="middle" font-family="Azeret Mono" font-size="10" fill="#1a7a4a" font-weight="600">Benefits</text>
+            <text x="190" y="220" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#555">No over-fetching • Single call for all data</text>
+            <text x="190" y="233" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#555">Additive fields — zero breaking changes</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="metrics">
+      <div class="metric"><div class="metric-val m-red">3</div><div class="metric-label">API calls (dashboard)</div></div>
+      <div class="metric"><div class="metric-val m-green">1</div><div class="metric-label">API calls after</div></div>
+      <div class="metric"><div class="metric-val m-amber">∞</div><div class="metric-label">Version endpoints</div></div>
+      <div class="metric"><div class="metric-val m-green">0</div><div class="metric-label">Breaking changes</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- IMPROVEMENT 2 -->
+<!-- ═══════════════════════════════════════ -->
+<div class="improvement" id="imp2">
+  <div class="imp-header" onclick="toggle(this)">
+    <div class="imp-num">02</div>
+    <div class="imp-title-block">
+      <div class="imp-label">Schema Validation</div>
+      <div class="imp-title">SDL type system eliminates the schema cache round-trip</div>
+      <div class="imp-badges">
+        <span class="badge b-critical">Critical</span>
+        <span class="badge b-performance">−4 steps removed</span>
+      </div>
+    </div>
+    <div class="imp-toggle">+</div>
+  </div>
+  <div class="imp-body">
+    <div class="ps-grid">
+      <div class="ps-box ps-problem">
+        <div class="ps-head">🔴 The Problem</div>
+        <div class="ps-body">
+          <p>The original diagram shows 4 of 11 steps are devoted entirely to schema fetch and validation: steps 1, 2, 10, 11. The Schema Cache is an external runtime dependency that adds latency on every request path.</p>
+          <ul class="ps-list problem">
+            <li>Step 1: BFF fetches schema for outgoing request from Schema Cache</li>
+            <li>Step 2: BFF validates request against retrieved schema</li>
+            <li>Step 10: BFF fetches schema for response from Schema Cache</li>
+            <li>Step 11: BFF validates response against retrieved schema</li>
+            <li>Schema Cache becomes a SPoF — if it's down, requests fail</li>
+            <li>Cache invalidation lag means outdated schemas can silently pass invalid payloads</li>
+          </ul>
+        </div>
+      </div>
+      <div class="ps-box ps-solution">
+        <div class="ps-head">🟢 The Solution</div>
+        <div class="ps-body">
+          <p>GraphQL's SDL is intrinsic to the server — it IS the server. Type checking happens at query parse time, before any resolver fires. There is no external schema dependency to fetch or validate against.</p>
+          <ul class="ps-list">
+            <li>SDL is parsed once at server startup — zero per-request schema fetches</li>
+            <li>Type validation happens during query parsing, not in a separate call</li>
+            <li>graphql-codegen generates TypeScript types at build time — errors caught before deploy</li>
+            <li>Introspection endpoint replaces the Schema Cache for discoverability</li>
+            <li>Apollo Studio provides a live schema registry with change diffing</li>
+            <li>No SPoF: schema lives in the process, not a network dependency</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="diagrams">
+      <div class="diag-label">Request lifecycle — schema validation</div>
+      <div class="diag-grid">
+        <div class="diag-box diag-old">
+          <div class="diag-title">⚠ Old: 4 round-trips for schema</div>
+          <svg viewBox="0 0 380 280" xmlns="http://www.w3.org/2000/svg">
+            <defs><marker id="a3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M2 2L8 5L2 8" fill="none" stroke="#e8806e" stroke-width="1.5"/></marker></defs>
+            <!-- BFF -->
+            <rect x="20" y="100" width="70" height="36" rx="5" fill="#fef2f0" stroke="#e8806e" stroke-width="1.2"/>
+            <text x="55" y="122" text-anchor="middle" font-family="Azeret Mono" font-size="11" fill="#c0392b" font-weight="600">BFF</text>
+            <!-- Schema Cache -->
+            <rect x="160" y="40" width="80" height="36" rx="5" fill="#fff8f7" stroke="#e8806e" stroke-width="1"/>
+            <text x="200" y="56" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#c0392b">Schema</text>
+            <text x="200" y="68" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#c0392b">Cache</text>
+            <!-- Arrows for steps 1,2 -->
+            <path d="M90 110 Q125 60 158 58" fill="none" stroke="#e8806e" stroke-width="1.2" stroke-dasharray="4 2" marker-end="url(#a3)"/>
+            <text x="115" y="68" font-family="Azeret Mono" font-size="8" fill="#e8806e">1) get schema</text>
+            <path d="M158 68 Q125 100 90 115" fill="none" stroke="#e8806e" stroke-width="1.2" stroke-dasharray="4 2" marker-end="url(#a3)"/>
+            <text x="105" y="100" font-family="Azeret Mono" font-size="8" fill="#e8806e">2) validate</text>
+            <!-- Time Away Service -->
+            <rect x="280" y="100" width="80" height="36" rx="5" fill="#fff8f7" stroke="#e8806e" stroke-width="1"/>
+            <text x="320" y="116" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#c0392b">Time Away</text>
+            <text x="320" y="128" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#c0392b">Service</text>
+            <line x1="90" y1="118" x2="278" y2="118" stroke="#e8806e" stroke-width="1.2" marker-end="url(#a3)"/>
+            <text x="185" y="112" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#999">3) request</text>
+            <line x1="278" y1="123" x2="90" y2="123" stroke="#e8806e" stroke-width="1.2" marker-end="url(#a3)"/>
+            <text x="185" y="133" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#999">9) response</text>
+            <!-- steps 10,11 -->
+            <path d="M90 128 Q125 170 158 162" fill="none" stroke="#e8806e" stroke-width="1.2" stroke-dasharray="4 2" marker-end="url(#a3)"/>
+            <text x="108" y="162" font-family="Azeret Mono" font-size="8" fill="#e8806e">10) get schema</text>
+            <path d="M158 168 Q125 190 90 133" fill="none" stroke="#e8806e" stroke-width="1.2" stroke-dasharray="4 2" marker-end="url(#a3)"/>
+            <text x="108" y="185" font-family="Azeret Mono" font-size="8" fill="#e8806e">11) validate resp</text>
+            <rect x="160" y="148" width="80" height="36" rx="5" fill="#fff8f7" stroke="#e8806e" stroke-width="1"/>
+            <text x="200" y="164" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#c0392b">Schema</text>
+            <text x="200" y="176" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#c0392b">Cache</text>
+            <rect x="10" y="228" width="360" height="36" rx="4" fill="#fff8f7" stroke="#e8806e" stroke-width="1" stroke-dasharray="4 2"/>
+            <text x="190" y="244" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#c0392b">4 extra network calls per request · Cache is a SPoF</text>
+            <text x="190" y="257" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#999">Schema cache lag can pass invalid payloads silently</text>
+          </svg>
+        </div>
+        <div class="diag-box diag-new">
+          <div class="diag-title">✓ New: SDL intrinsic validation</div>
+          <svg viewBox="0 0 380 280" xmlns="http://www.w3.org/2000/svg">
+            <defs><marker id="a4" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M2 2L8 5L2 8" fill="none" stroke="#1a7a4a" stroke-width="1.5"/></marker></defs>
+            <!-- GQL Server with embedded SDL -->
+            <rect x="130" y="60" width="120" height="80" rx="8" fill="#1a1814" stroke="#1a7a4a" stroke-width="1.5"/>
+            <text x="190" y="82" text-anchor="middle" font-family="Azeret Mono" font-size="11" fill="#4ade80" font-weight="600">GraphQL BFF</text>
+            <rect x="140" y="92" width="100" height="22" rx="3" fill="rgba(26,122,74,0.2)" stroke="rgba(26,122,74,0.4)" stroke-width="1"/>
+            <text x="190" y="106" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#4ade80">SDL — built in</text>
+            <text x="190" y="128" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="rgba(255,255,255,0.3)">validates at parse time</text>
+            <!-- Client -->
+            <rect x="10" y="85" width="70" height="36" rx="5" fill="#f0f7f3" stroke="#1a7a4a" stroke-width="1"/>
+            <text x="45" y="107" text-anchor="middle" font-family="Azeret Mono" font-size="10" fill="#1a7a4a">Client</text>
+            <line x1="80" y1="103" x2="128" y2="103" stroke="#1a7a4a" stroke-width="1.5" marker-end="url(#a4)"/>
+            <text x="104" y="97" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#1a7a4a">query</text>
+            <!-- Time Away Service -->
+            <rect x="300" y="85" width="70" height="36" rx="5" fill="#f0f7f3" stroke="#1a7a4a" stroke-width="1"/>
+            <text x="335" y="101" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#1a7a4a">Time Away</text>
+            <text x="335" y="113" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#1a7a4a">Service</text>
+            <line x1="250" y1="100" x2="298" y2="100" stroke="#1a7a4a" stroke-width="1.5" marker-end="url(#a4)"/>
+            <text x="274" y="94" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#1a7a4a">resolve</text>
+            <line x1="298" y1="110" x2="250" y2="110" stroke="#1a7a4a" stroke-width="1.2" marker-end="url(#a4)"/>
+            <!-- Eliminated items (crossed out) -->
+            <rect x="10" y="186" width="360" height="28" rx="4" fill="#fff8f7" stroke="#e8806e" stroke-width="1" stroke-dasharray="4 2" opacity="0.5"/>
+            <text x="190" y="204" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#999" text-decoration="line-through">Schema Cache · Runtime validation calls · SPoF dependency</text>
+            <text x="70" y="204" font-family="Azeret Mono" font-size="16" fill="#c0392b">✗</text>
+            <!-- Benefits box -->
+            <rect x="10" y="228" width="360" height="36" rx="4" fill="#f0f7f3" stroke="#1a7a4a" stroke-width="1"/>
+            <text x="190" y="244" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#1a7a4a">0 schema network calls · Validated at query parse</text>
+            <text x="190" y="257" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#555">graphql-codegen catches errors at build time</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- IMPROVEMENT 3 -->
+<!-- ═══════════════════════════════════════ -->
+<div class="improvement" id="imp3">
+  <div class="imp-header" onclick="toggle(this)">
+    <div class="imp-num">03</div>
+    <div class="imp-title-block">
+      <div class="imp-label">Service Architecture</div>
+      <div class="imp-title">Apollo Federation — unified supergraph from domain subgraphs</div>
+      <div class="imp-badges">
+        <span class="badge b-critical">Critical</span>
+        <span class="badge b-high">Team autonomy</span>
+      </div>
+    </div>
+    <div class="imp-toggle">+</div>
+  </div>
+  <div class="imp-body">
+    <div class="ps-grid">
+      <div class="ps-box ps-problem">
+        <div class="ps-head">🔴 The Problem</div>
+        <div class="ps-body">
+          <p>The Time Away Service is a monolithic REST service. Absence Management, Balances, and Active History live behind one shared interface. Any team touching any domain must coordinate deploys.</p>
+          <ul class="ps-list problem">
+            <li>Single deploy pipeline for 3 independent domains</li>
+            <li>Shared data model — one team's change can break another's API contract</li>
+            <li>The BFF has no visibility into sub-domain structure — it sees one opaque service</li>
+            <li>Scaling one sub-domain (e.g. History) requires scaling the whole service</li>
+            <li>A bug in Balances can take down Absence Management</li>
+          </ul>
+        </div>
+      </div>
+      <div class="ps-box ps-solution">
+        <div class="ps-head">🟢 The Solution</div>
+        <div class="ps-body">
+          <p>Apollo Federation v2 lets each domain own a subgraph with its own SDL, resolvers, and deployment. The Federation Gateway stitches them into one unified supergraph. The client sees one schema; teams deploy independently.</p>
+          <ul class="ps-list">
+            <li>Each subgraph owns its types — <code style="font-family:var(--font-mono);font-size:11px">@key(fields:"id")</code> links entities across subgraphs</li>
+            <li>Gateway performs query planning — knows which subgraph resolves which field</li>
+            <li>Subgraph schema changes go through <code style="font-family:var(--font-mono);font-size:11px">rover subgraph check</code> before publish</li>
+            <li>Independent scaling: History pod autoscales separately from Balances</li>
+            <li>Failure isolation: Balances subgraph errors don't cascade to Absence</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="diagrams">
+      <div class="diag-label">Service architecture — federation</div>
+      <div class="diag-grid">
+        <div class="diag-box diag-old">
+          <div class="diag-title">⚠ Old: Monolithic REST service</div>
+          <svg viewBox="0 0 380 260" xmlns="http://www.w3.org/2000/svg">
+            <defs><marker id="a5" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M2 2L8 5L2 8" fill="none" stroke="#e8806e" stroke-width="1.5"/></marker></defs>
+            <rect x="10" y="100" width="70" height="36" rx="5" fill="#fef2f0" stroke="#e8806e" stroke-width="1"/>
+            <text x="45" y="122" text-anchor="middle" font-family="Azeret Mono" font-size="10" fill="#c0392b">BFF</text>
+            <line x1="80" y1="118" x2="128" y2="118" stroke="#e8806e" stroke-width="1.5" marker-end="url(#a5)"/>
+            <text x="104" y="112" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#999">REST POST</text>
+            <!-- Monolith box -->
+            <rect x="130" y="40" width="200" height="175" rx="8" fill="#fff8f7" stroke="#e8806e" stroke-width="1.5"/>
+            <text x="230" y="62" text-anchor="middle" font-family="Azeret Mono" font-size="11" fill="#c0392b" font-weight="600">Time Away Service</text>
+            <text x="230" y="76" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#999">one deploy · shared codebase</text>
+            <rect x="148" y="88" width="164" height="30" rx="4" fill="#fef2f0" stroke="#e8806e" stroke-width="1"/>
+            <text x="230" y="107" text-anchor="middle" font-family="Azeret Mono" font-size="10" fill="#c0392b">Absence Management</text>
+            <rect x="148" y="128" width="164" height="30" rx="4" fill="#fef2f0" stroke="#e8806e" stroke-width="1"/>
+            <text x="230" y="147" text-anchor="middle" font-family="Azeret Mono" font-size="10" fill="#c0392b">Balances</text>
+            <rect x="148" y="168" width="164" height="30" rx="4" fill="#fef2f0" stroke="#e8806e" stroke-width="1"/>
+            <text x="230" y="187" text-anchor="middle" font-family="Azeret Mono" font-size="10" fill="#c0392b">Active History</text>
+            <!-- shared DB -->
+            <ellipse cx="340" cy="118" rx="28" ry="18" fill="#fff8f7" stroke="#e8806e" stroke-width="1"/>
+            <text x="340" y="115" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#c0392b">Shared</text>
+            <text x="340" y="125" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#c0392b">DB</text>
+            <line x1="330" y1="103" x2="335" y2="101" stroke="#e8806e" stroke-width="1"/>
+            <text x="190" y="235" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#c0392b">Coupled deploy · Shared DB · No isolation</text>
+          </svg>
+        </div>
+        <div class="diag-box diag-new">
+          <div class="diag-title">✓ New: Apollo Federation subgraphs</div>
+          <svg viewBox="0 0 380 260" xmlns="http://www.w3.org/2000/svg">
+            <defs><marker id="a6" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M2 2L8 5L2 8" fill="none" stroke="#1a7a4a" stroke-width="1.5"/></marker></defs>
+            <rect x="10" y="100" width="60" height="36" rx="5" fill="#f0f7f3" stroke="#1a7a4a" stroke-width="1"/>
+            <text x="40" y="122" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#1a7a4a">GQL BFF</text>
+            <line x1="70" y1="118" x2="98" y2="118" stroke="#1a7a4a" stroke-width="1.5" marker-end="url(#a6)"/>
+            <!-- Gateway -->
+            <rect x="100" y="95" width="72" height="46" rx="6" fill="#1a1814" stroke="#1a7a4a" stroke-width="1.5"/>
+            <text x="136" y="112" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#4ade80" font-weight="600">Fed.</text>
+            <text x="136" y="126" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#4ade80">Gateway</text>
+            <text x="136" y="136" text-anchor="middle" font-family="Azeret Mono" font-size="7" fill="rgba(255,255,255,0.3)">query plan</text>
+            <!-- 3 arrows to subgraphs -->
+            <line x1="172" y1="106" x2="218" y2="72" stroke="#1a7a4a" stroke-width="1.2" marker-end="url(#a6)"/>
+            <line x1="172" y1="118" x2="218" y2="118" stroke="#1a7a4a" stroke-width="1.2" marker-end="url(#a6)"/>
+            <line x1="172" y1="130" x2="218" y2="163" stroke="#1a7a4a" stroke-width="1.2" marker-end="url(#a6)"/>
+            <!-- Subgraph 1 -->
+            <rect x="220" y="50" width="90" height="40" rx="5" fill="#f0f7f3" stroke="#1a7a4a" stroke-width="1"/>
+            <text x="265" y="66" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#1a7a4a">Absence</text>
+            <text x="265" y="78" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#555">subgraph · own SDL</text>
+            <!-- Subgraph 2 -->
+            <rect x="220" y="98" width="90" height="40" rx="5" fill="#eff6ff" stroke="#2563a8" stroke-width="1"/>
+            <text x="265" y="114" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#2563a8">Balances</text>
+            <text x="265" y="126" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#555">subgraph · own SDL</text>
+            <!-- Subgraph 3 -->
+            <rect x="220" y="146" width="90" height="40" rx="5" fill="#fffbf0" stroke="#d97706" stroke-width="1"/>
+            <text x="265" y="162" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#d97706">History</text>
+            <text x="265" y="174" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#555">subgraph · own SDL</text>
+            <!-- Own DBs -->
+            <line x1="310" y1="70" x2="336" y2="70" stroke="#1a7a4a" stroke-width="1" marker-end="url(#a6)"/>
+            <line x1="310" y1="118" x2="336" y2="118" stroke="#2563a8" stroke-width="1" marker-end="url(#a6)"/>
+            <line x1="310" y1="166" x2="336" y2="166" stroke="#d97706" stroke-width="1" marker-end="url(#a6)"/>
+            <ellipse cx="348" cy="70" rx="18" ry="12" fill="#f0f7f3" stroke="#1a7a4a" stroke-width="1"/>
+            <text x="348" y="74" text-anchor="middle" font-family="Azeret Mono" font-size="7" fill="#1a7a4a">DB</text>
+            <ellipse cx="348" cy="118" rx="18" ry="12" fill="#eff6ff" stroke="#2563a8" stroke-width="1"/>
+            <text x="348" y="122" text-anchor="middle" font-family="Azeret Mono" font-size="7" fill="#2563a8">DB</text>
+            <ellipse cx="348" cy="166" rx="18" ry="12" fill="#fffbf0" stroke="#d97706" stroke-width="1"/>
+            <text x="348" y="170" text-anchor="middle" font-family="Azeret Mono" font-size="7" fill="#d97706">DB</text>
+            <text x="190" y="230" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#1a7a4a">Independent deploys · Isolated failure · Own data</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="code-block">
+      <div class="code-head2"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div><span style="margin-left:8px">absence-subgraph.graphql — @key federation directive</span></div>
+      <pre><span class="cm"># Each subgraph declares its owned types with @key</span>
+<span class="kw">extend schema</span> <span class="ty">@link</span>(url: <span class="str">"https://specs.apollo.dev/federation/v2.0"</span>, import: [<span class="str">"@key"</span>])
+
+<span class="kw">type</span> <span class="ty">Employee</span> <span class="ty">@key</span>(fields: <span class="str">"id"</span>) {
+  id: <span class="ty">ID!</span>
+  absences: [<span class="ty">Absence!</span>]!          <span class="cm"># owned by this subgraph</span>
+}
+
+<span class="cm"># Balances subgraph extends Employee with its fields</span>
+<span class="kw">type</span> <span class="ty">Employee</span> <span class="ty">@key</span>(fields: <span class="str">"id"</span>) {
+  id: <span class="ty">ID!</span>
+  currentBalance: <span class="ty">LeaveBalance</span>   <span class="cm"># owned by balances subgraph</span>
+}</pre>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- IMPROVEMENT 4 -->
+<!-- ═══════════════════════════════════════ -->
+<div class="improvement" id="imp4">
+  <div class="imp-header" onclick="toggle(this)">
+    <div class="imp-num">04</div>
+    <div class="imp-title-block">
+      <div class="imp-label">Data Fetching</div>
+      <div class="imp-title">DataLoader — eliminates the N+1 query problem</div>
+      <div class="imp-badges">
+        <span class="badge b-critical">Critical</span>
+        <span class="badge b-performance">Performance</span>
+      </div>
+    </div>
+    <div class="imp-toggle">+</div>
+  </div>
+  <div class="imp-body">
+    <div class="ps-grid">
+      <div class="ps-box ps-problem">
+        <div class="ps-head">🔴 The Problem</div>
+        <div class="ps-body">
+          <p>GraphQL resolvers are called per-node in the response tree. Without batching, fetching 20 employees' balances fires 20 separate database queries — one per resolver call. This is the N+1 problem.</p>
+          <ul class="ps-list problem">
+            <li>Query asks for 20 employees with their balances → 1 query for employees + 20 for balances = 21 DB hits</li>
+            <li>Each resolver is unaware of sibling resolvers running in parallel</li>
+            <li>Database connection pool exhaustion under moderate load</li>
+            <li>Latency multiplies with list size — O(n) database calls</li>
+          </ul>
+        </div>
+      </div>
+      <div class="ps-box ps-solution">
+        <div class="ps-head">🟢 The Solution</div>
+        <div class="ps-body">
+          <p>DataLoader batches all <code style="font-family:var(--font-mono);font-size:11px">balance.load(employeeId)</code> calls that occur within the same event loop tick into a single <code style="font-family:var(--font-mono);font-size:11px">SELECT * WHERE id = ANY($1)</code> query. Identical IDs are deduplicated automatically.</p>
+          <ul class="ps-list">
+            <li>20 employees' balances → 1 batched DB query regardless of list size</li>
+            <li>Per-request cache: same ID requested twice returns the cached result</li>
+            <li>DataLoader lives in request context — no cross-request data leaking</li>
+            <li>Works across federated subgraphs — each subgraph has its own loaders</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="diagrams">
+      <div class="diag-label">Database query pattern</div>
+      <div class="diag-grid">
+        <div class="diag-box diag-old">
+          <div class="diag-title">⚠ Old: N+1 — 21 queries for 20 employees</div>
+          <svg viewBox="0 0 380 240" xmlns="http://www.w3.org/2000/svg">
+            <defs><marker id="a7" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M2 2L8 5L2 8" fill="none" stroke="#e8806e" stroke-width="1.5"/></marker></defs>
+            <rect x="10" y="90" width="80" height="40" rx="5" fill="#fef2f0" stroke="#e8806e" stroke-width="1.2"/>
+            <text x="50" y="108" text-anchor="middle" font-family="Azeret Mono" font-size="10" fill="#c0392b">Resolver</text>
+            <text x="50" y="120" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#999">per employee</text>
+            <!-- 5 arrows representing many queries -->
+            <line x1="90" y1="97" x2="178" y2="50" stroke="#e8806e" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#a7)"/>
+            <line x1="90" y1="102" x2="178" y2="76" stroke="#e8806e" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#a7)"/>
+            <line x1="90" y1="110" x2="178" y2="102" stroke="#e8806e" stroke-width="1.5" stroke-dasharray="3 2" marker-end="url(#a7)"/>
+            <line x1="90" y1="118" x2="178" y2="128" stroke="#e8806e" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#a7)"/>
+            <line x1="90" y1="123" x2="178" y2="154" stroke="#e8806e" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#a7)"/>
+            <!-- DB -->
+            <ellipse cx="220" cy="102" rx="38" ry="68" fill="#fff8f7" stroke="#e8806e" stroke-width="1.5"/>
+            <text x="220" y="96" text-anchor="middle" font-family="Azeret Mono" font-size="10" fill="#c0392b" font-weight="600">DB</text>
+            <text x="220" y="110" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#999">21 queries</text>
+            <!-- count labels -->
+            <text x="280" y="50" font-family="Azeret Mono" font-size="9" fill="#e8806e">query #1</text>
+            <text x="280" y="76" font-family="Azeret Mono" font-size="9" fill="#e8806e">query #2</text>
+            <text x="280" y="102" font-family="Azeret Mono" font-size="9" fill="#c0392b" font-weight="600">query #3…</text>
+            <text x="280" y="128" font-family="Azeret Mono" font-size="9" fill="#e8806e">query #19</text>
+            <text x="280" y="154" font-family="Azeret Mono" font-size="9" fill="#e8806e">query #20</text>
+            <rect x="10" y="200" width="360" height="28" rx="4" fill="#fff8f7" stroke="#e8806e" stroke-width="1"/>
+            <text x="190" y="218" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#c0392b">20 employees = 21 DB queries · O(n) scaling · Pool exhaustion</text>
+          </svg>
+        </div>
+        <div class="diag-box diag-new">
+          <div class="diag-title">✓ New: DataLoader — 1 batched query</div>
+          <svg viewBox="0 0 380 240" xmlns="http://www.w3.org/2000/svg">
+            <defs><marker id="a8" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M2 2L8 5L2 8" fill="none" stroke="#1a7a4a" stroke-width="1.5"/></marker></defs>
+            <!-- Resolvers funnel into DataLoader -->
+            <text x="10" y="46" font-family="Azeret Mono" font-size="8" fill="#555">emp#1</text>
+            <text x="10" y="72" font-family="Azeret Mono" font-size="8" fill="#555">emp#2</text>
+            <text x="10" y="98" font-family="Azeret Mono" font-size="8" fill="#555">emp#3</text>
+            <text x="10" y="124" font-family="Azeret Mono" font-size="8" fill="#555">…</text>
+            <text x="10" y="150" font-family="Azeret Mono" font-size="8" fill="#555">emp#20</text>
+            <line x1="40" y1="44" x2="88" y2="86" stroke="#1a7a4a" stroke-width="1" marker-end="url(#a8)"/>
+            <line x1="40" y1="70" x2="88" y2="92" stroke="#1a7a4a" stroke-width="1" marker-end="url(#a8)"/>
+            <line x1="40" y1="96" x2="88" y2="98" stroke="#1a7a4a" stroke-width="1" marker-end="url(#a8)"/>
+            <line x1="40" y1="120" x2="88" y2="104" stroke="#1a7a4a" stroke-width="1" marker-end="url(#a8)"/>
+            <line x1="40" y1="148" x2="88" y2="110" stroke="#1a7a4a" stroke-width="1" marker-end="url(#a8)"/>
+            <!-- DataLoader box -->
+            <rect x="90" y="72" width="100" height="52" rx="6" fill="#1a1814" stroke="#1a7a4a" stroke-width="1.5"/>
+            <text x="140" y="92" text-anchor="middle" font-family="Azeret Mono" font-size="10" fill="#4ade80" font-weight="600">DataLoader</text>
+            <text x="140" y="106" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="rgba(255,255,255,0.4)">batch + dedupe</text>
+            <text x="140" y="118" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="rgba(255,255,255,0.3)">one tick</text>
+            <!-- One arrow to DB -->
+            <line x1="190" y1="98" x2="238" y2="98" stroke="#1a7a4a" stroke-width="2" marker-end="url(#a8)"/>
+            <text x="214" y="90" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#1a7a4a">1 query</text>
+            <!-- DB -->
+            <ellipse cx="270" cy="98" rx="30" ry="50" fill="#f0f7f3" stroke="#1a7a4a" stroke-width="1.5"/>
+            <text x="270" y="93" text-anchor="middle" font-family="Azeret Mono" font-size="10" fill="#1a7a4a" font-weight="600">DB</text>
+            <text x="270" y="107" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#555">ANY($1)</text>
+            <!-- SQL label -->
+            <text x="320" y="80" font-family="Azeret Mono" font-size="8" fill="#555">SELECT *</text>
+            <text x="320" y="93" font-family="Azeret Mono" font-size="8" fill="#555">WHERE id</text>
+            <text x="320" y="106" font-family="Azeret Mono" font-size="8" fill="#1a7a4a">= ANY($1)</text>
+            <rect x="10" y="200" width="360" height="28" rx="4" fill="#f0f7f3" stroke="#1a7a4a" stroke-width="1"/>
+            <text x="190" y="218" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#1a7a4a">20 employees = 1 DB query · O(1) scaling · Pool safe</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="code-block">
+      <div class="code-head2"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div><span style="margin-left:8px">dataloader.ts — batch function</span></div>
+      <pre><span class="kw">import</span> DataLoader <span class="kw">from</span> <span class="str">'dataloader'</span>
+
+<span class="cm">// Called ONCE per event-loop tick with all queued IDs</span>
+<span class="kw">export const</span> <span class="fn2">createBalanceLoader</span> = () => <span class="kw">new</span> <span class="ty">DataLoader</span>&lt;string, LeaveBalance&gt;(
+  <span class="kw">async</span> (employeeIds: readonly string[]) => {
+    <span class="kw">const</span> rows = <span class="kw">await</span> db.<span class="fn2">query</span>(
+      <span class="str">'SELECT * FROM balances WHERE employee_id = ANY($1)'</span>,
+      [employeeIds]   <span class="cm">// all 20 IDs in one call</span>
+    )
+    <span class="cm">// Must return in SAME ORDER as input IDs</span>
+    <span class="kw">return</span> employeeIds.<span class="fn2">map</span>(id =>
+      rows.<span class="fn2">find</span>(r => r.employee_id === id) ??
+      <span class="kw">new</span> Error(<span class="str">`Balance not found: </span>${id}<span class="str">`</span>)
+    )
+  },
+  { cache: <span class="kw">true</span> }  <span class="cm">// same ID in same request = cached</span>
+)
+
+<span class="cm">// In resolver — called for EVERY employee node</span>
+<span class="kw">const</span> resolvers = {
+  Employee: {
+    currentBalance: (emp, _, { loaders }) =>
+      loaders.balance.<span class="fn2">load</span>(emp.id)  <span class="cm">// batched automatically</span>
+  }
+}</pre>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- IMPROVEMENT 5 -->
+<!-- ═══════════════════════════════════════ -->
+<div class="improvement" id="imp5">
+  <div class="imp-header" onclick="toggle(this)">
+    <div class="imp-num">05</div>
+    <div class="imp-title-block">
+      <div class="imp-label">Real-time</div>
+      <div class="imp-title">GraphQL Subscriptions replace polling for live balance updates</div>
+      <div class="imp-badges">
+        <span class="badge b-high">High impact</span>
+        <span class="badge b-performance">Mobile battery &amp; bandwidth</span>
+      </div>
+    </div>
+    <div class="imp-toggle">+</div>
+  </div>
+  <div class="imp-body">
+    <div class="ps-grid">
+      <div class="ps-box ps-problem">
+        <div class="ps-head">🔴 The Problem</div>
+        <div class="ps-body">
+          <p>When a manager approves time off, the employee's leave balance changes. The mobile app has no way to know this without repeatedly polling the balance endpoint — wasting battery, bandwidth, and server resources.</p>
+          <ul class="ps-list problem">
+            <li>Mobile polls <code style="font-family:var(--font-mono);font-size:11px">GET /balance</code> every 30 seconds hoping for changes</li>
+            <li>99% of polls return the same data — wasted requests</li>
+            <li>Battery drain on mobile from wake-up cycles</li>
+            <li>Server load scales with number of active mobile users</li>
+            <li>Balance shown to user can be 30 seconds stale</li>
+          </ul>
+        </div>
+      </div>
+      <div class="ps-box ps-solution">
+        <div class="ps-head">🟢 The Solution</div>
+        <div class="ps-body">
+          <p>The <code style="font-family:var(--font-mono);font-size:11px">approveAbsence</code> mutation publishes to a PubSub channel. The mobile app holds an open WebSocket subscription. The server pushes the updated balance the instant approval completes — zero polling.</p>
+          <ul class="ps-list">
+            <li>WebSocket/SSE connection idle until a real event occurs</li>
+            <li>Mutation publishes to <code style="font-family:var(--font-mono);font-size:11px">BALANCE_UPDATED:{employeeId}</code> channel</li>
+            <li>Only subscribed employee receives the push</li>
+            <li>Falls back to SSE (Server-Sent Events) for environments without WebSocket</li>
+            <li>Balance shown to user updates in under 100ms after approval</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="diagrams">
+      <div class="diag-label">Real-time update flow</div>
+      <div class="diag-grid">
+        <div class="diag-box diag-old">
+          <div class="diag-title">⚠ Old: Polling every 30s</div>
+          <svg viewBox="0 0 380 240" xmlns="http://www.w3.org/2000/svg">
+            <defs><marker id="a9" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M2 2L8 5L2 8" fill="none" stroke="#e8806e" stroke-width="1.5"/></marker></defs>
+            <rect x="10" y="80" width="70" height="50" rx="5" fill="#fef2f0" stroke="#e8806e" stroke-width="1.2"/>
+            <text x="45" y="100" text-anchor="middle" font-family="Azeret Mono" font-size="10" fill="#c0392b">Mobile</text>
+            <text x="45" y="113" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#c0392b">App</text>
+            <text x="45" y="125" text-anchor="middle" font-family="Azeret Mono" font-size="7" fill="#999">🔋 battery</text>
+            <!-- Three polling arrows -->
+            <path d="M80 93 Q140 60 200 90" fill="none" stroke="#e8806e" stroke-width="1.2" stroke-dasharray="4 2" marker-end="url(#a9)"/>
+            <text x="140" y="60" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#999">t=0s poll</text>
+            <path d="M80 105 Q140 105 200 105" fill="none" stroke="#e8806e" stroke-width="1.2" stroke-dasharray="4 2" marker-end="url(#a9)"/>
+            <text x="140" y="99" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#999">t=30s poll</text>
+            <path d="M80 117 Q140 150 200 120" fill="none" stroke="#e8806e" stroke-width="1.2" stroke-dasharray="4 2" marker-end="url(#a9)"/>
+            <text x="140" y="158" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#999">t=60s poll</text>
+            <rect x="202" y="80" width="80" height="50" rx="5" fill="#fef2f0" stroke="#e8806e" stroke-width="1"/>
+            <text x="242" y="100" text-anchor="middle" font-family="Azeret Mono" font-size="10" fill="#c0392b">BFF</text>
+            <text x="242" y="114" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#999">/balance</text>
+            <!-- Same response indicator -->
+            <rect x="300" y="60" width="68" height="22" rx="3" fill="#fff8f7" stroke="#e8806e" stroke-width="1"/>
+            <text x="334" y="75" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#999">same data ✗</text>
+            <rect x="300" y="90" width="68" height="22" rx="3" fill="#fff8f7" stroke="#e8806e" stroke-width="1"/>
+            <text x="334" y="105" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#999">same data ✗</text>
+            <rect x="300" y="120" width="68" height="22" rx="3" fill="#fff8f7" stroke="#e8806e" stroke-width="1"/>
+            <text x="334" y="135" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#c0392b">changed! ✓</text>
+            <rect x="10" y="200" width="360" height="28" rx="4" fill="#fff8f7" stroke="#e8806e" stroke-width="1"/>
+            <text x="190" y="218" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#c0392b">99% wasted polls · 30s stale · Battery drain · Server load</text>
+          </svg>
+        </div>
+        <div class="diag-box diag-new">
+          <div class="diag-title">✓ New: Subscription push on approval</div>
+          <svg viewBox="0 0 380 240" xmlns="http://www.w3.org/2000/svg">
+            <defs><marker id="a10" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M2 2L8 5L2 8" fill="none" stroke="#1a7a4a" stroke-width="1.5"/></marker></defs>
+            <rect x="10" y="85" width="70" height="42" rx="5" fill="#f0f7f3" stroke="#1a7a4a" stroke-width="1.2"/>
+            <text x="45" y="103" text-anchor="middle" font-family="Azeret Mono" font-size="10" fill="#1a7a4a">Mobile</text>
+            <text x="45" y="116" text-anchor="middle" font-family="Azeret Mono" font-size="7" fill="#555">🔋 idle</text>
+            <!-- WebSocket line -->
+            <line x1="80" y1="106" x2="148" y2="106" stroke="#2563a8" stroke-width="2"/>
+            <text x="114" y="100" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#2563a8">WS open</text>
+            <!-- GQL Server -->
+            <rect x="150" y="75" width="80" height="60" rx="6" fill="#1a1814" stroke="#1a7a4a" stroke-width="1.5"/>
+            <text x="190" y="95" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#4ade80" font-weight="600">GQL</text>
+            <text x="190" y="109" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="rgba(255,255,255,0.5)">PubSub</text>
+            <text x="190" y="124" text-anchor="middle" font-family="Azeret Mono" font-size="7" fill="rgba(255,255,255,0.3)">subscriber waiting</text>
+            <!-- Manager approves -->
+            <rect x="280" y="50" width="88" height="36" rx="5" fill="#fffbf0" stroke="#d97706" stroke-width="1.2"/>
+            <text x="324" y="66" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#d97706">Manager</text>
+            <text x="324" y="79" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#555">approves ✓</text>
+            <line x1="280" y1="68" x2="232" y2="90" stroke="#d97706" stroke-width="1.5" marker-end="url(#a10)"/>
+            <text x="262" y="72" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#d97706">mutation</text>
+            <!-- Push arrow -->
+            <line x1="150" y1="106" x2="82" y2="106" stroke="#1a7a4a" stroke-width="2" stroke-dasharray="6 2" marker-end="url(#a10)"/>
+            <text x="116" y="122" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#1a7a4a">push &lt;100ms</text>
+            <rect x="10" y="158" width="70" height="28" rx="4" fill="#f0f7f3" stroke="#1a7a4a" stroke-width="1"/>
+            <text x="45" y="170" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#1a7a4a">balance</text>
+            <text x="45" y="181" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#1a7a4a">updated ✓</text>
+            <rect x="10" y="200" width="360" height="28" rx="4" fill="#f0f7f3" stroke="#1a7a4a" stroke-width="1"/>
+            <text x="190" y="218" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#1a7a4a">0 polls · Real-time push · Battery efficient · &lt;100ms latency</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- IMPROVEMENT 6 -->
+<!-- ═══════════════════════════════════════ -->
+<div class="improvement" id="imp6">
+  <div class="imp-header" onclick="toggle(this)">
+    <div class="imp-num">06</div>
+    <div class="imp-title-block">
+      <div class="imp-label">Mobile Performance</div>
+      <div class="imp-title">Automatic Persisted Queries — reduce mobile payload on repeat calls</div>
+      <div class="imp-badges">
+        <span class="badge b-high">High</span>
+        <span class="badge b-performance">Mobile bandwidth</span>
+      </div>
+    </div>
+    <div class="imp-toggle">+</div>
+  </div>
+  <div class="imp-body">
+    <div class="ps-grid">
+      <div class="ps-box ps-problem">
+        <div class="ps-head">🔴 The Problem</div>
+        <div class="ps-body">
+          <p>Every GraphQL request sends the full query string in the POST body. A typical Time Away query document can be 400–800 bytes. On mobile with poor connectivity, this adds latency and costs data.</p>
+          <ul class="ps-list problem">
+            <li>Full query string sent on every request even if it never changes</li>
+            <li>Cannot be GET-cached by CDN (body-based queries aren't cacheable)</li>
+            <li>Large queries with fragments amplify the waste</li>
+          </ul>
+        </div>
+      </div>
+      <div class="ps-box ps-solution">
+        <div class="ps-head">🟢 The Solution</div>
+        <div class="ps-body">
+          <p>APQ (Automatic Persisted Queries) sends only a SHA-256 hash of the query on subsequent calls. On first hit the server returns a <code style="font-family:var(--font-mono);font-size:11px">PersistedQueryNotFound</code> error; the client re-sends with the full query. All subsequent calls send only the 64-char hash.</p>
+          <ul class="ps-list">
+            <li>Repeat queries: 64-byte hash vs 600-byte query string — 90%+ reduction</li>
+            <li>GET-request compatible — CDN can cache by hash as URL parameter</li>
+            <li>Apollo Router supports APQ out of the box</li>
+            <li>Works transparently — no changes required in resolvers</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="diagrams">
+      <div class="diag-label">APQ request flow</div>
+      <div class="diag-grid">
+        <div class="diag-box diag-old">
+          <div class="diag-title">⚠ Old: Full query string every time</div>
+          <svg viewBox="0 0 380 200" xmlns="http://www.w3.org/2000/svg">
+            <defs><marker id="a11" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M2 2L8 5L2 8" fill="none" stroke="#e8806e" stroke-width="1.5"/></marker></defs>
+            <rect x="10" y="80" width="60" height="36" rx="5" fill="#fef2f0" stroke="#e8806e" stroke-width="1.2"/>
+            <text x="40" y="102" text-anchor="middle" font-family="Azeret Mono" font-size="10" fill="#c0392b">Mobile</text>
+            <line x1="70" y1="98" x2="128" y2="70" stroke="#e8806e" stroke-width="1.2" marker-end="url(#a11)"/>
+            <line x1="70" y1="100" x2="128" y2="100" stroke="#e8806e" stroke-width="1.2" marker-end="url(#a11)"/>
+            <line x1="70" y1="102" x2="128" y2="130" stroke="#e8806e" stroke-width="1.2" marker-end="url(#a11)"/>
+            <!-- Query body labels -->
+            <text x="90" y="60" font-family="Azeret Mono" font-size="8" fill="#999">query{absence{id startDate endDate status...}}</text>
+            <text x="90" y="95" font-family="Azeret Mono" font-size="8" fill="#999">query{absence{id startDate endDate status...}}</text>
+            <text x="90" y="136" font-family="Azeret Mono" font-size="8" fill="#999">query{absence{id startDate endDate status...}}</text>
+            <rect x="130" y="60" width="60" height="108" rx="5" fill="#fef2f0" stroke="#e8806e" stroke-width="1"/>
+            <text x="160" y="118" text-anchor="middle" font-family="Azeret Mono" font-size="10" fill="#c0392b">Server</text>
+            <text x="190" y="185" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#c0392b">~600 bytes sent 3× = 1800 bytes wasted</text>
+          </svg>
+        </div>
+        <div class="diag-box diag-new">
+          <div class="diag-title">✓ New: APQ — hash after first call</div>
+          <svg viewBox="0 0 380 200" xmlns="http://www.w3.org/2000/svg">
+            <defs><marker id="a12" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M2 2L8 5L2 8" fill="none" stroke="#1a7a4a" stroke-width="1.5"/></marker></defs>
+            <rect x="10" y="80" width="60" height="36" rx="5" fill="#f0f7f3" stroke="#1a7a4a" stroke-width="1.2"/>
+            <text x="40" y="102" text-anchor="middle" font-family="Azeret Mono" font-size="10" fill="#1a7a4a">Mobile</text>
+            <!-- First call - full query -->
+            <line x1="70" y1="90" x2="168" y2="65" stroke="#d97706" stroke-width="1.5" marker-end="url(#a12)"/>
+            <text x="120" y="60" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#d97706">1st: hash + full query</text>
+            <!-- Subsequent - hash only -->
+            <line x1="70" y1="98" x2="168" y2="98" stroke="#1a7a4a" stroke-width="1.5" marker-end="url(#a12)"/>
+            <text x="120" y="92" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#1a7a4a">2nd: sha256:a1b2c3… only</text>
+            <line x1="70" y1="106" x2="168" y2="130" stroke="#1a7a4a" stroke-width="1.5" marker-end="url(#a12)"/>
+            <text x="120" y="138" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#1a7a4a">3rd: sha256:a1b2c3… only</text>
+            <rect x="170" y="52" width="70" height="108" rx="5" fill="#1a1814" stroke="#1a7a4a" stroke-width="1.5"/>
+            <text x="205" y="75" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#4ade80">GQL</text>
+            <text x="205" y="90" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="rgba(255,255,255,0.5)">APQ</text>
+            <text x="205" y="105" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="rgba(255,255,255,0.4)">cache</text>
+            <text x="280" y="75" font-family="Azeret Mono" font-size="8" fill="#d97706">~640b once</text>
+            <text x="280" y="100" font-family="Azeret Mono" font-size="8" fill="#1a7a4a">64b hash ✓</text>
+            <text x="280" y="132" font-family="Azeret Mono" font-size="8" fill="#1a7a4a">64b hash ✓</text>
+            <text x="190" y="185" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#1a7a4a">90% bandwidth reduction on repeat calls · CDN cacheable</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- IMPROVEMENT 7 -->
+<!-- ═══════════════════════════════════════ -->
+<div class="improvement" id="imp7">
+  <div class="imp-header" onclick="toggle(this)">
+    <div class="imp-num">07</div>
+    <div class="imp-title-block">
+      <div class="imp-label">Security</div>
+      <div class="imp-title">Query depth and complexity limits — protect against expensive queries</div>
+      <div class="imp-badges">
+        <span class="badge b-high">High</span>
+        <span class="badge b-critical">Security</span>
+      </div>
+    </div>
+    <div class="imp-toggle">+</div>
+  </div>
+  <div class="imp-body">
+    <div class="ps-grid">
+      <div class="ps-box ps-problem">
+        <div class="ps-head">🔴 The Problem</div>
+        <div class="ps-body">
+          <p>GraphQL's flexibility is its attack surface. A malicious or accidentally recursive query can nest deeply and trigger exponential resolver calls, exhausting your database connection pool and bringing down the service.</p>
+          <ul class="ps-list problem">
+            <li>Deeply nested query: <code style="font-family:var(--font-mono);font-size:11px">employee{absences{employee{absences{employee{...}}}}}</code></li>
+            <li>Each nesting level can multiply resolver calls by the list size</li>
+            <li>No REST equivalent — GET requests have fixed cost; GraphQL does not</li>
+            <li>Without limits, a single request can simulate a DDoS</li>
+          </ul>
+        </div>
+      </div>
+      <div class="ps-box ps-solution">
+        <div class="ps-head">🟢 The Solution</div>
+        <div class="ps-body">
+          <p>Enforce two limits at the Apollo Gateway/Router level before any resolver fires: a maximum query depth (8 levels) and a complexity budget (500 points) where each field has a cost and lists multiply their contents.</p>
+          <ul class="ps-list">
+            <li>Max depth 8 covers all legitimate Time Away queries (actual max ~4)</li>
+            <li>Complexity budget: scalar = 1pt, list = 10pt × child cost</li>
+            <li>Limits enforced in the query parser — resolvers never fire for invalid queries</li>
+            <li>Apollo Router plugin: <code style="font-family:var(--font-mono);font-size:11px">@cost(weight: 10)</code> directive on list fields</li>
+            <li>Rate limiting per <code style="font-family:var(--font-mono);font-size:11px">employeeId</code> claims from JWT</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="diagrams">
+      <div class="diag-label">Query complexity enforcement</div>
+      <div class="diag-grid">
+        <div class="diag-box diag-old">
+          <div class="diag-title">⚠ Old: Unbounded query depth</div>
+          <svg viewBox="0 0 380 240" xmlns="http://www.w3.org/2000/svg">
+            <defs><marker id="a13" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M2 2L8 5L2 8" fill="none" stroke="#e8806e" stroke-width="1.5"/></marker></defs>
+            <!-- Tree of doom -->
+            <rect x="160" y="10" width="70" height="24" rx="4" fill="#fef2f0" stroke="#e8806e" stroke-width="1"/>
+            <text x="195" y="26" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#c0392b">employee</text>
+            <line x1="195" y1="34" x2="120" y2="58" stroke="#e8806e" stroke-width="1" marker-end="url(#a13)"/>
+            <line x1="195" y1="34" x2="270" y2="58" stroke="#e8806e" stroke-width="1" marker-end="url(#a13)"/>
+            <rect x="80" y="58" width="76" height="22" rx="4" fill="#fef2f0" stroke="#e8806e" stroke-width="1"/>
+            <text x="118" y="73" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#c0392b">absences[20]</text>
+            <rect x="230" y="58" width="76" height="22" rx="4" fill="#fef2f0" stroke="#e8806e" stroke-width="1"/>
+            <text x="268" y="73" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#c0392b">absences[20]</text>
+            <!-- Level 3 -->
+            <line x1="118" y1="80" x2="70" y2="104" stroke="#e8806e" stroke-width="1" marker-end="url(#a13)"/>
+            <line x1="118" y1="80" x2="166" y2="104" stroke="#e8806e" stroke-width="1" marker-end="url(#a13)"/>
+            <line x1="268" y1="80" x2="220" y2="104" stroke="#e8806e" stroke-width="1" marker-end="url(#a13)"/>
+            <line x1="268" y1="80" x2="316" y2="104" stroke="#e8806e" stroke-width="1" marker-end="url(#a13)"/>
+            <text x="70" y="116" text-anchor="middle" font-family="Azeret Mono" font-size="7" fill="#c0392b">emp×20</text>
+            <text x="166" y="116" text-anchor="middle" font-family="Azeret Mono" font-size="7" fill="#c0392b">emp×20</text>
+            <text x="220" y="116" text-anchor="middle" font-family="Azeret Mono" font-size="7" fill="#c0392b">emp×20</text>
+            <text x="316" y="116" text-anchor="middle" font-family="Azeret Mono" font-size="7" fill="#c0392b">emp×20</text>
+            <text x="190" y="148" text-anchor="middle" font-family="Azeret Mono" font-size="10" fill="#c0392b" font-weight="600">= 20³ = 8,000 DB calls</text>
+            <text x="190" y="165" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#999">One query brings down the service</text>
+            <rect x="10" y="192" width="360" height="28" rx="4" fill="#fff8f7" stroke="#e8806e" stroke-width="1" stroke-dasharray="4 2"/>
+            <text x="190" y="210" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#c0392b">No limits = exponential amplification = database death</text>
+          </svg>
+        </div>
+        <div class="diag-box diag-new">
+          <div class="diag-title">✓ New: Depth + complexity enforced at gateway</div>
+          <svg viewBox="0 0 380 240" xmlns="http://www.w3.org/2000/svg">
+            <defs><marker id="a14" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M2 2L8 5L2 8" fill="none" stroke="#1a7a4a" stroke-width="1.5"/></marker></defs>
+            <!-- Client -->
+            <rect x="10" y="90" width="60" height="36" rx="5" fill="#f0f7f3" stroke="#1a7a4a" stroke-width="1"/>
+            <text x="40" y="112" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#1a7a4a">Client</text>
+            <line x1="70" y1="108" x2="108" y2="108" stroke="#1a7a4a" stroke-width="1.5" marker-end="url(#a14)"/>
+            <!-- Gateway check -->
+            <rect x="110" y="78" width="96" height="60" rx="6" fill="#1a1814" stroke="#1a7a4a" stroke-width="1.5"/>
+            <text x="158" y="98" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#4ade80" font-weight="600">Gateway</text>
+            <text x="158" y="113" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="rgba(255,255,255,0.5)">depth ≤ 8</text>
+            <text x="158" y="126" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="rgba(255,255,255,0.5)">cost ≤ 500</text>
+            <!-- Check arrows -->
+            <line x1="206" y1="100" x2="244" y2="78" stroke="#1a7a4a" stroke-width="1.2" marker-end="url(#a14)"/>
+            <line x1="206" y1="116" x2="244" y2="136" stroke="#c0392b" stroke-width="1.2" stroke-dasharray="4 2" marker-end="url(#a14)"/>
+            <!-- Pass -->
+            <rect x="246" y="60" width="104" height="30" rx="4" fill="#f0f7f3" stroke="#1a7a4a" stroke-width="1"/>
+            <text x="298" y="74" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#1a7a4a">✓ valid query</text>
+            <text x="298" y="84" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#555">→ resolvers fire</text>
+            <!-- Reject -->
+            <rect x="246" y="118" width="104" height="30" rx="4" fill="#fff8f7" stroke="#e8806e" stroke-width="1"/>
+            <text x="298" y="132" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#c0392b">✗ too deep/costly</text>
+            <text x="298" y="142" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#999">→ rejected 400</text>
+            <rect x="10" y="192" width="360" height="36" rx="4" fill="#f0f7f3" stroke="#1a7a4a" stroke-width="1"/>
+            <text x="190" y="208" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#1a7a4a">Rejected before any DB call · Zero resolver cost · Config only</text>
+            <text x="190" y="222" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#555">All Time Away queries stay well under depth:4, cost:80</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- IMPROVEMENT 8 -->
+<!-- ═══════════════════════════════════════ -->
+<div class="improvement" id="imp8">
+  <div class="imp-header" onclick="toggle(this)">
+    <div class="imp-num">08</div>
+    <div class="imp-title-block">
+      <div class="imp-label">Schema Governance</div>
+      <div class="imp-title">Schema registry becomes SDL contract versioning — CI/CD gate</div>
+      <div class="imp-badges">
+        <span class="badge b-medium">Medium</span>
+        <span class="badge b-high">DevOps</span>
+      </div>
+    </div>
+    <div class="imp-toggle">+</div>
+  </div>
+  <div class="imp-body">
+    <div class="ps-grid">
+      <div class="ps-box ps-problem">
+        <div class="ps-head">🔴 The Problem</div>
+        <div class="ps-body">
+          <p>The Schema Registry in the current diagram is a runtime dependency — queried on the hot path during every request (steps 4, 7). It's a network call inside the request lifecycle, adding 10–50ms per call.</p>
+          <ul class="ps-list problem">
+            <li>Runtime schema fetch adds latency to every request (steps 4, 7)</li>
+            <li>Schema Registry downtime causes request failures</li>
+            <li>Schema changes aren't validated before deploy — only discovered at runtime</li>
+            <li>No diff history — hard to know when a field was added or removed</li>
+          </ul>
+        </div>
+      </div>
+      <div class="ps-box ps-solution">
+        <div class="ps-head">🟢 The Solution</div>
+        <div class="ps-body">
+          <p>The registry keeps its SDLs but moves entirely off the hot path. Apollo Studio runs <code style="font-family:var(--font-mono);font-size:11px">rover subgraph check</code> in the CI pipeline before any deploy. Breaking changes fail the pipeline — they never reach production.</p>
+          <ul class="ps-list">
+            <li><code style="font-family:var(--font-mono);font-size:11px">rover subgraph check --schema absence.graphql</code> runs in CI</li>
+            <li>Breaking changes (removed fields, type changes) fail the pipeline</li>
+            <li>Non-breaking additions (new fields) pass automatically</li>
+            <li>Schema changelog visible in Apollo Studio</li>
+            <li>Zero runtime dependency — registry is a deploy-time tool, not a request-time tool</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="diagrams">
+      <div class="diag-label">Schema registry — runtime vs deploy-time</div>
+      <div class="diag-grid">
+        <div class="diag-box diag-old">
+          <div class="diag-title">⚠ Old: Registry on hot request path</div>
+          <svg viewBox="0 0 380 200" xmlns="http://www.w3.org/2000/svg">
+            <defs><marker id="a15" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M2 2L8 5L2 8" fill="none" stroke="#e8806e" stroke-width="1.5"/></marker></defs>
+            <rect x="10" y="80" width="60" height="36" rx="4" fill="#fef2f0" stroke="#e8806e" stroke-width="1"/>
+            <text x="40" y="102" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#c0392b">Request</text>
+            <line x1="70" y1="98" x2="108" y2="98" stroke="#e8806e" stroke-width="1.5" marker-end="url(#a15)"/>
+            <rect x="110" y="75" width="80" height="46" rx="5" fill="#fef2f0" stroke="#e8806e" stroke-width="1.2"/>
+            <text x="150" y="96" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#c0392b">Service</text>
+            <!-- Service hits registry during request -->
+            <path d="M150 75 Q150 30 250 40" fill="none" stroke="#e8806e" stroke-width="1.2" stroke-dasharray="4 2" marker-end="url(#a15)"/>
+            <text x="195" y="26" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#e8806e">step 4: fetch schema</text>
+            <path d="M250 50 Q200 70 190 75" fill="none" stroke="#e8806e" stroke-width="1.2" stroke-dasharray="4 2" marker-end="url(#a15)"/>
+            <rect x="220" y="30" width="100" height="40" rx="5" fill="#fff8f7" stroke="#e8806e" stroke-width="1"/>
+            <text x="270" y="48" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#c0392b">Schema</text>
+            <text x="270" y="62" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#c0392b">Registry</text>
+            <text x="190" y="165" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#c0392b">+20–50ms per request · SPoF · Errors cause request failure</text>
+          </svg>
+        </div>
+        <div class="diag-box diag-new">
+          <div class="diag-title">✓ New: Registry as CI gate only</div>
+          <svg viewBox="0 0 380 200" xmlns="http://www.w3.org/2000/svg">
+            <defs><marker id="a16" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M2 2L8 5L2 8" fill="none" stroke="#1a7a4a" stroke-width="1.5"/></marker></defs>
+            <!-- CI pipeline -->
+            <rect x="10" y="20" width="64" height="30" rx="4" fill="#fffbf0" stroke="#d97706" stroke-width="1"/>
+            <text x="42" y="39" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#d97706">git push</text>
+            <line x1="74" y1="35" x2="108" y2="35" stroke="#d97706" stroke-width="1.5" marker-end="url(#a16)"/>
+            <rect x="110" y="20" width="64" height="30" rx="4" fill="#fffbf0" stroke="#d97706" stroke-width="1"/>
+            <text x="142" y="33" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#d97706">rover</text>
+            <text x="142" y="44" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#d97706">check</text>
+            <line x1="174" y1="35" x2="208" y2="35" stroke="#d97706" stroke-width="1.5" marker-end="url(#a16)"/>
+            <rect x="210" y="20" width="80" height="30" rx="4" fill="#1a1814" stroke="#1a7a4a" stroke-width="1.5"/>
+            <text x="250" y="33" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#4ade80">Apollo</text>
+            <text x="250" y="44" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#4ade80">Studio</text>
+            <line x1="290" y1="35" x2="324" y2="35" stroke="#1a7a4a" stroke-width="1.5" marker-end="url(#a16)"/>
+            <rect x="326" y="20" width="44" height="30" rx="4" fill="#f0f7f3" stroke="#1a7a4a" stroke-width="1"/>
+            <text x="348" y="33" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#1a7a4a">deploy</text>
+            <text x="348" y="44" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#555">✓ pass</text>
+            <!-- Request path - no registry -->
+            <rect x="10" y="100" width="60" height="36" rx="4" fill="#f0f7f3" stroke="#1a7a4a" stroke-width="1"/>
+            <text x="40" y="122" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#1a7a4a">Request</text>
+            <line x1="70" y1="118" x2="108" y2="118" stroke="#1a7a4a" stroke-width="1.5" marker-end="url(#a16)"/>
+            <rect x="110" y="95" width="80" height="46" rx="5" fill="#1a1814" stroke="#1a7a4a" stroke-width="1.5"/>
+            <text x="150" y="112" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#4ade80">GQL BFF</text>
+            <text x="150" y="128" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="rgba(255,255,255,0.4)">SDL in-process</text>
+            <line x1="190" y1="118" x2="228" y2="118" stroke="#1a7a4a" stroke-width="1.5" marker-end="url(#a16)"/>
+            <rect x="230" y="100" width="80" height="36" rx="4" fill="#f0f7f3" stroke="#1a7a4a" stroke-width="1"/>
+            <text x="270" y="122" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#1a7a4a">Subgraph</text>
+            <text x="270" y="102" text-anchor="middle" font-family="Azeret Mono" font-size="8" fill="#999">Registry not in hot path</text>
+            <rect x="10" y="163" width="360" height="26" rx="4" fill="#f0f7f3" stroke="#1a7a4a" stroke-width="1"/>
+            <text x="190" y="180" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#1a7a4a">0ms registry latency per request · Breaking changes caught in CI</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- IMPROVEMENT 9 -->
+<!-- ═══════════════════════════════════════ -->
+<div class="improvement" id="imp9">
+  <div class="imp-header" onclick="toggle(this)">
+    <div class="imp-num">09</div>
+    <div class="imp-title-block">
+      <div class="imp-label">Observability</div>
+      <div class="imp-title">Field-level tracing and resolver performance monitoring</div>
+      <div class="imp-badges">
+        <span class="badge b-medium">Medium</span>
+        <span class="badge b-high">Observability</span>
+      </div>
+    </div>
+    <div class="imp-toggle">+</div>
+  </div>
+  <div class="imp-body">
+    <div class="ps-grid">
+      <div class="ps-box ps-problem">
+        <div class="ps-head">🔴 The Problem</div>
+        <div class="ps-body">
+          <p>REST monitoring gives you request-level metrics: status codes, latency, error rates. But when a GraphQL query is slow, you need to know which resolver field caused it — something REST logs cannot tell you.</p>
+          <ul class="ps-list problem">
+            <li>Slow requests look the same in REST logs regardless of which resolver is at fault</li>
+            <li>No visibility into which fields are actually being used by clients</li>
+            <li>Cannot deprecate a field safely — you don't know if anyone still queries it</li>
+            <li>N+1 problems may exist silently — no per-resolver DB call count</li>
+          </ul>
+        </div>
+      </div>
+      <div class="ps-box ps-solution">
+        <div class="ps-head">🟢 The Solution</div>
+        <div class="ps-body">
+          <p>Apollo Studio's field-level tracing instruments every resolver automatically. You see a flame graph per query showing which resolver took how long, which fields are queried by which clients, and which fields have been unused for 30 days.</p>
+          <ul class="ps-list">
+            <li>Resolver flame graph: see exactly which field is slow</li>
+            <li>Field usage analytics: know if a deprecated field is still called before removing it</li>
+            <li>Operation signatures: group all queries by shape for aggregate analytics</li>
+            <li>Error tracking: per-field error rates, not just per-endpoint</li>
+            <li>Apollo Router plugin emits OpenTelemetry spans per resolver — Jaeger/Datadog compatible</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="diagrams">
+      <div class="diag-label">Observability depth — REST vs GraphQL</div>
+      <div class="diag-grid">
+        <div class="diag-box diag-old">
+          <div class="diag-title">⚠ Old: Request-level only</div>
+          <svg viewBox="0 0 380 200" xmlns="http://www.w3.org/2000/svg">
+            <rect x="10" y="20" width="360" height="40" rx="4" fill="#fef2f0" stroke="#e8806e" stroke-width="1.2"/>
+            <text x="20" y="38" font-family="Azeret Mono" font-size="9" fill="#c0392b">POST /api/v1/timeaway/submit → 200 OK · 380ms</text>
+            <text x="20" y="52" font-family="Azeret Mono" font-size="8" fill="#999">← only info available in logs</text>
+            <text x="190" y="90" text-anchor="middle" font-family="Azeret Mono" font-size="11" fill="#999">?</text>
+            <text x="190" y="108" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#999">Which resolver was slow?</text>
+            <text x="190" y="122" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#999">Which field caused the 380ms?</text>
+            <text x="190" y="136" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#999">Is this field even being used?</text>
+            <rect x="10" y="162" width="360" height="26" rx="4" fill="#fff8f7" stroke="#e8806e" stroke-width="1" stroke-dasharray="4 2"/>
+            <text x="190" y="179" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#c0392b">Cannot answer these questions with REST logs</text>
+          </svg>
+        </div>
+        <div class="diag-box diag-new">
+          <div class="diag-title">✓ New: Field-level resolver tracing</div>
+          <svg viewBox="0 0 380 200" xmlns="http://www.w3.org/2000/svg">
+            <!-- Flame chart bars -->
+            <text x="10" y="18" font-family="Azeret Mono" font-size="8" fill="#555">resolver flame graph — 380ms total</text>
+            <rect x="10" y="24" width="360" height="14" rx="2" fill="#1a7a4a" opacity="0.8"/>
+            <text x="15" y="35" font-family="Azeret Mono" font-size="8" fill="#fff">Employee.absences (2ms)</text>
+            <rect x="10" y="42" width="300" height="14" rx="2" fill="#2563a8" opacity="0.8"/>
+            <text x="15" y="53" font-family="Azeret Mono" font-size="8" fill="#fff">Absence.employee resolver (1ms)</text>
+            <rect x="10" y="60" width="340" height="14" rx="2" fill="#d97706" opacity="0.8"/>
+            <text x="15" y="71" font-family="Azeret Mono" font-size="8" fill="#fff">LeaveBalance.remaining — 355ms ← bottleneck!</text>
+            <rect x="10" y="78" width="80" height="14" rx="2" fill="#6d28d9" opacity="0.8"/>
+            <text x="15" y="89" font-family="Azeret Mono" font-size="8" fill="#fff">History.list (18ms)</text>
+            <!-- Field usage -->
+            <text x="10" y="115" font-family="Azeret Mono" font-size="8" fill="#555">field usage (last 30 days)</text>
+            <rect x="10" y="120" width="200" height="14" rx="2" fill="#f0f7f3" stroke="#1a7a4a" stroke-width="1"/>
+            <text x="15" y="131" font-family="Azeret Mono" font-size="8" fill="#1a7a4a">absence.startDate — 98,420 calls ✓</text>
+            <rect x="10" y="138" width="80" height="14" rx="2" fill="#fff8f7" stroke="#e8806e" stroke-width="1"/>
+            <text x="15" y="149" font-family="Azeret Mono" font-size="8" fill="#c0392b">absence.legacyCode — 0 calls → safe to remove</text>
+            <rect x="10" y="162" width="360" height="26" rx="4" fill="#f0f7f3" stroke="#1a7a4a" stroke-width="1"/>
+            <text x="190" y="179" text-anchor="middle" font-family="Azeret Mono" font-size="9" fill="#1a7a4a">Pinpoint bottlenecks · Safe deprecation · Usage analytics</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div>
+    <strong>Time Away Service — GraphQL Architecture Deep Dive</strong><br>
+    9 improvements · Apollo Federation v2 · DataLoader · APQ · Subscriptions · Field tracing<br>
+    Each improvement includes: problem analysis · solution design · old/new diagrams · implementation guidance
+  </div>
+</footer>
+
+<script>
+function toggle(header) {
+  const body = header.nextElementSibling;
+  const btn = header.querySelector('.imp-toggle');
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  btn.textContent = isOpen ? '+' : '−';
+  header.classList.toggle('imp-open', !isOpen);
+}
+
+function expandAll() {
+  document.querySelectorAll('.imp-body').forEach(b => b.classList.add('open'));
+  document.querySelectorAll('.imp-toggle').forEach(b => b.textContent = '−');
+  document.querySelectorAll('.imp-header').forEach(h => h.classList.add('imp-open'));
+}
+
+function collapseAll() {
+  document.querySelectorAll('.imp-body').forEach(b => b.classList.remove('open'));
+  document.querySelectorAll('.imp-toggle').forEach(b => b.textContent = '+');
+  document.querySelectorAll('.imp-header').forEach(h => h.classList.remove('imp-open'));
+}
+
+// Smooth scroll nav
+document.querySelectorAll('.nav-pill[data-target]').forEach(p => {
+  p.addEventListener('click', () => {
+    document.getElementById(p.dataset.target)?.scrollIntoView({behavior:'smooth'});
+  });
+});
+</script>
+</body>
+</html>
