@@ -1,0 +1,1434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scalable & Robust GraphQL Architecture — Time Away Service</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,600;0,800;1,300&family=JetBrains+Mono:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#08090d;
+  --bg2:#0e1018;
+  --card:#131520;
+  --card2:#1a1d2e;
+  --border:rgba(255,255,255,0.06);
+  --border2:rgba(255,255,255,0.12);
+  --text:#dde1f0;
+  --muted:#6b7094;
+  --dim:#3d4166;
+  --blue:#4f8ef7;
+  --blue2:#2d6fe8;
+  --teal:#29c9a8;
+  --teal2:#1a9e83;
+  --amber:#f5a623;
+  --red:#ef4b6c;
+  --purple:#a78bfa;
+  --green:#34d399;
+  --font:'Plus Jakarta Sans',sans-serif;
+  --mono:'JetBrains Mono',monospace;
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--font);background:var(--bg);color:var(--text);overflow-x:hidden}
+
+/* Subtle animated grid */
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:linear-gradient(rgba(79,142,247,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(79,142,247,0.03) 1px,transparent 1px);
+  background-size:48px 48px;pointer-events:none;z-index:0;
+}
+
+/* HEADER */
+header{
+  position:sticky;top:0;z-index:200;
+  background:rgba(8,9,13,0.92);backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);
+  padding:0 48px;height:60px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.logo{font-size:14px;font-weight:800;letter-spacing:-0.02em;display:flex;align-items:center;gap:10px}
+.logo-dot{width:8px;height:8px;border-radius:50%;background:var(--teal);box-shadow:0 0 8px var(--teal)}
+.logo span{color:var(--teal)}
+nav{display:flex;gap:4px}
+nav a{
+  font-family:var(--mono);font-size:11px;color:var(--muted);
+  text-decoration:none;padding:5px 12px;border-radius:4px;
+  transition:all 0.2s;letter-spacing:0.03em;
+}
+nav a:hover{color:var(--text);background:var(--card)}
+.header-badge{
+  font-family:var(--mono);font-size:11px;
+  background:rgba(41,201,168,0.1);border:1px solid rgba(41,201,168,0.25);
+  color:var(--teal);padding:4px 12px;border-radius:20px;letter-spacing:0.05em;
+}
+
+/* HERO */
+.hero{
+  position:relative;z-index:1;
+  padding:80px 48px 64px;
+  border-bottom:1px solid var(--border);
+  overflow:hidden;
+}
+.hero-glow{
+  position:absolute;top:-120px;left:-80px;
+  width:600px;height:600px;border-radius:50%;
+  background:radial-gradient(circle,rgba(79,142,247,0.07) 0%,transparent 70%);
+  pointer-events:none;
+}
+.hero-glow2{
+  position:absolute;top:-60px;right:100px;
+  width:400px;height:400px;border-radius:50%;
+  background:radial-gradient(circle,rgba(41,201,168,0.05) 0%,transparent 70%);
+  pointer-events:none;
+}
+.hero-tag{
+  display:inline-flex;align-items:center;gap:8px;
+  font-family:var(--mono);font-size:11px;color:var(--teal);
+  letter-spacing:0.1em;text-transform:uppercase;margin-bottom:28px;
+  border:1px solid rgba(41,201,168,0.2);padding:5px 14px;border-radius:20px;
+  background:rgba(41,201,168,0.06);
+}
+.hero-tag::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--teal);animation:blink 2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+.hero h1{
+  font-size:clamp(40px,6vw,80px);font-weight:800;line-height:0.93;
+  letter-spacing:-0.04em;margin-bottom:28px;
+}
+.hero h1 .grad{
+  background:linear-gradient(135deg,var(--blue) 0%,var(--teal) 50%,var(--purple) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.hero-sub{
+  font-size:16px;font-weight:300;color:var(--muted);line-height:1.8;
+  max-width:640px;margin-bottom:40px;
+}
+.hero-stats{display:flex;flex-wrap:wrap;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;max-width:700px}
+.hstat{
+  flex:1;min-width:120px;padding:20px 24px;background:var(--card);
+  display:flex;flex-direction:column;gap:4px;
+}
+.hstat-val{font-size:30px;font-weight:800;line-height:1;letter-spacing:-0.03em}
+.hstat-label{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase}
+.v-blue{color:var(--blue)}.v-teal{color:var(--teal)}.v-amber{color:var(--amber)}.v-red{color:var(--red)}.v-purple{color:var(--purple)}.v-green{color:var(--green)}
+
+/* SECTION WRAPPER */
+.section{position:relative;z-index:1;padding:64px 48px;border-bottom:1px solid var(--border)}
+.section-eyebrow{
+  font-family:var(--mono);font-size:11px;color:var(--teal);
+  letter-spacing:0.12em;text-transform:uppercase;margin-bottom:12px;
+  display:flex;align-items:center;gap:10px;
+}
+.section-eyebrow::before{content:'';width:20px;height:1px;background:var(--teal)}
+.section-title{font-size:clamp(24px,3vw,38px);font-weight:800;letter-spacing:-0.03em;margin-bottom:12px;line-height:1.1}
+.section-sub{font-size:15px;font-weight:300;color:var(--muted);line-height:1.8;max-width:700px;margin-bottom:48px}
+
+/* ARCHITECTURE LAYERS DIAGRAM */
+.arch-full{
+  border:1px solid var(--border2);border-radius:12px;overflow:hidden;
+  background:var(--card);
+}
+.arch-layer{
+  border-bottom:1px solid var(--border);
+  display:grid;grid-template-columns:180px 1fr;min-height:80px;
+}
+.arch-layer:last-child{border:none}
+.arch-layer-label{
+  padding:20px 24px;border-right:1px solid var(--border);
+  display:flex;flex-direction:column;justify-content:center;gap:4px;
+  background:var(--bg2);
+}
+.arch-layer-name{font-size:12px;font-weight:600;letter-spacing:0.04em}
+.arch-layer-desc{font-family:var(--mono);font-size:10px;color:var(--muted);line-height:1.5}
+.arch-layer-nodes{
+  padding:16px 24px;display:flex;align-items:center;flex-wrap:wrap;gap:10px;
+}
+.anode{
+  padding:8px 14px;border-radius:6px;font-size:12px;font-weight:600;
+  border:1px solid;display:flex;flex-direction:column;gap:2px;
+  cursor:default;transition:transform 0.2s;
+}
+.anode:hover{transform:translateY(-2px)}
+.anode-sub{font-family:var(--mono);font-size:9px;font-weight:400;opacity:0.7}
+.an-blue{background:rgba(79,142,247,0.1);border-color:rgba(79,142,247,0.3);color:var(--blue)}
+.an-teal{background:rgba(41,201,168,0.1);border-color:rgba(41,201,168,0.3);color:var(--teal)}
+.an-amber{background:rgba(245,166,35,0.1);border-color:rgba(245,166,35,0.3);color:var(--amber)}
+.an-purple{background:rgba(167,139,250,0.1);border-color:rgba(167,139,250,0.3);color:var(--purple)}
+.an-red{background:rgba(239,75,108,0.1);border-color:rgba(239,75,108,0.3);color:var(--red)}
+.an-green{background:rgba(52,211,153,0.1);border-color:rgba(52,211,153,0.3);color:var(--green)}
+.an-gray{background:rgba(107,112,148,0.1);border-color:rgba(107,112,148,0.3);color:var(--muted)}
+.arch-arrow-col{
+  display:flex;align-items:center;padding:0 8px;
+  color:var(--dim);font-size:18px;
+}
+
+/* OLD vs NEW big diagrams */
+.compare-hero{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-top:32px}
+.ch-box{background:var(--card)}
+.ch-head{
+  padding:16px 24px;border-bottom:1px solid var(--border);
+  font-size:13px;font-weight:600;display:flex;align-items:center;gap:10px;
+}
+.ch-old .ch-head{color:var(--red);background:rgba(239,75,108,0.05)}
+.ch-new .ch-head{color:var(--teal);background:rgba(41,201,168,0.05)}
+.ch-badge{
+  font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:3px;
+  margin-left:auto;
+}
+.ch-old .ch-badge{background:rgba(239,75,108,0.15);color:var(--red)}
+.ch-new .ch-badge{background:rgba(41,201,168,0.12);color:var(--teal)}
+.ch-body{padding:24px}
+.ch-body svg{width:100%;height:auto;display:block}
+
+/* PILLAR CARDS */
+.pillars{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:32px}
+.pillar{
+  background:var(--card);border:1px solid var(--border);border-radius:10px;
+  padding:28px 24px;position:relative;overflow:hidden;
+  transition:border-color 0.3s,transform 0.3s;
+}
+.pillar:hover{border-color:var(--border2);transform:translateY(-3px)}
+.pillar::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+}
+.p-scale::before{background:linear-gradient(90deg,var(--blue),var(--teal))}
+.p-robust::before{background:linear-gradient(90deg,var(--red),var(--amber))}
+.p-observe::before{background:linear-gradient(90deg,var(--purple),var(--blue))}
+.p-secure::before{background:linear-gradient(90deg,var(--amber),var(--red))}
+.p-perf::before{background:linear-gradient(90deg,var(--teal),var(--green))}
+.p-dev::before{background:linear-gradient(90deg,var(--purple),var(--teal))}
+.pillar-icon{font-size:28px;margin-bottom:16px;display:block}
+.pillar h3{font-size:16px;font-weight:800;letter-spacing:-0.02em;margin-bottom:8px}
+.pillar-desc{font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:16px}
+.pillar-items{list-style:none}
+.pillar-items li{
+  font-family:var(--mono);font-size:11px;color:var(--muted);
+  padding:5px 0;border-bottom:1px solid var(--border);line-height:1.5;
+  display:flex;gap:8px;align-items:flex-start;
+}
+.pillar-items li:last-child{border:none}
+.pillar-items li::before{content:'→';flex-shrink:0;margin-top:1px}
+.p-scale .pillar-items li::before{color:var(--blue)}
+.p-robust .pillar-items li::before{color:var(--red)}
+.p-observe .pillar-items li::before{color:var(--purple)}
+.p-secure .pillar-items li::before{color:var(--amber)}
+.p-perf .pillar-items li::before{color:var(--teal)}
+.p-dev .pillar-items li::before{color:var(--purple)}
+
+/* TECHNOLOGY STACK TABLE */
+.tech-table{width:100%;border-collapse:collapse;margin-top:32px}
+.tech-table th{
+  text-align:left;padding:12px 16px;
+  font-family:var(--mono);font-size:10px;letter-spacing:0.1em;text-transform:uppercase;
+  color:var(--muted);border-bottom:1px solid var(--border);background:var(--bg2);
+}
+.tech-table td{
+  padding:14px 16px;border-bottom:1px solid var(--border);
+  font-size:13px;vertical-align:top;
+}
+.tech-table tr:hover td{background:var(--card)}
+.tech-table tr:last-child td{border:none}
+td.tech-cat{font-family:var(--mono);font-size:11px;color:var(--muted);font-weight:400}
+td.tech-old{color:var(--red);font-weight:600}
+td.tech-new{color:var(--teal);font-weight:600}
+td.tech-why{font-size:12px;color:var(--muted);line-height:1.6}
+td.tech-impact{
+  font-family:var(--mono);font-size:10px;letter-spacing:0.04em;
+}
+.impact-chip{
+  display:inline-block;padding:2px 8px;border-radius:3px;
+  font-family:var(--mono);font-size:10px;
+}
+.ic-crit{background:rgba(239,75,108,0.15);color:var(--red)}
+.ic-high{background:rgba(245,166,35,0.15);color:var(--amber)}
+.ic-med{background:rgba(41,201,168,0.12);color:var(--teal)}
+
+/* CODE BLOCKS */
+.code-tabs{margin-top:32px;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.code-tab-head{
+  display:flex;background:var(--bg2);border-bottom:1px solid var(--border);overflow-x:auto;
+}
+.ctab{
+  padding:10px 20px;font-family:var(--mono);font-size:11px;color:var(--muted);
+  cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;
+  transition:all 0.2s;
+}
+.ctab.active{color:var(--teal);border-bottom-color:var(--teal);background:var(--card)}
+.ctab:hover:not(.active){color:var(--text)}
+.code-panel{display:none;padding:0}
+.code-panel.active{display:block}
+pre{
+  padding:24px;font-family:var(--mono);font-size:12px;font-weight:300;
+  line-height:1.9;color:#a8b3d8;overflow-x:auto;
+}
+.k{color:#f47067}.t{color:#79c0ff}.fn{color:#d2a8ff}.s{color:#a5d6ff}
+.c{color:#4d5578;font-style:italic}.op{color:#8b96c8}.num{color:#f69d50}
+
+/* RESILIENCE PATTERNS */
+.patterns{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:32px}
+.pattern{
+  background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;
+}
+.pattern-head{
+  padding:16px 20px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:12px;
+}
+.pattern-icon{
+  width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;
+}
+.pattern h4{font-size:14px;font-weight:700;letter-spacing:-0.01em}
+.pattern-sub{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:2px}
+.pattern-body{padding:16px 20px}
+.pattern-body p{font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:10px}
+.pattern-body p:last-child{margin:0}
+.pattern-tag{
+  display:inline-block;font-family:var(--mono);font-size:10px;
+  padding:2px 8px;border-radius:3px;border:1px solid var(--border2);color:var(--muted);
+  margin:2px;transition:all 0.2s;
+}
+.pattern:hover .pattern-tag{border-color:rgba(41,201,168,0.3);color:var(--teal)}
+
+/* FLOW DIAGRAM */
+.flow-diag{
+  background:var(--card);border:1px solid var(--border);border-radius:12px;
+  padding:32px;margin-top:32px;overflow-x:auto;
+}
+.flow-diag svg{display:block;min-width:900px;width:100%;height:auto}
+
+/* METRICS GRID */
+.metrics-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:32px}
+.metric-card{
+  background:var(--card);border:1px solid var(--border);border-radius:8px;
+  padding:20px;text-align:center;position:relative;overflow:hidden;
+}
+.metric-card::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:2px;
+}
+.mc-blue::after{background:var(--blue)}.mc-teal::after{background:var(--teal)}
+.mc-amber::after{background:var(--amber)}.mc-purple::after{background:var(--purple)}
+.mc-red::after{background:var(--red)}.mc-green::after{background:var(--green)}
+.metric-before{font-family:var(--mono);font-size:10px;color:var(--red);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px}
+.metric-after{font-family:var(--mono);font-size:10px;color:var(--teal);text-transform:uppercase;letter-spacing:0.08em;margin-top:4px}
+.metric-val-big{font-size:32px;font-weight:800;letter-spacing:-0.04em;line-height:1}
+.metric-arrow{font-size:20px;color:var(--teal);margin:4px 0;display:block}
+.metric-label2{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.5}
+
+/* FOOTER */
+footer{
+  position:relative;z-index:1;
+  border-top:1px solid var(--border);padding:48px;
+  display:grid;grid-template-columns:1fr auto;gap:32px;align-items:start;
+}
+.footer-content h4{font-size:15px;font-weight:700;margin-bottom:8px}
+.footer-content p{font-family:var(--mono);font-size:12px;color:var(--muted);line-height:1.8}
+.footer-tech{display:flex;flex-wrap:wrap;gap:6px;margin-top:16px}
+.ftech{
+  font-family:var(--mono);font-size:10px;color:var(--muted);
+  border:1px solid var(--border);padding:3px 10px;border-radius:3px;
+}
+.footer-stamp{text-align:right}
+.fs-val{font-size:48px;font-weight:800;letter-spacing:-0.05em;line-height:1;color:var(--dim)}
+.fs-label{font-family:var(--mono);font-size:11px;color:var(--muted)}
+
+@media(max-width:1024px){
+  header,footer,.hero,.section{padding-left:24px;padding-right:24px}
+  .pillars{grid-template-columns:1fr 1fr}
+  .metrics-grid{grid-template-columns:repeat(2,1fr)}
+  .patterns{grid-template-columns:1fr}
+  footer{grid-template-columns:1fr}
+}
+@media(max-width:640px){
+  .pillars{grid-template-columns:1fr}
+  .compare-hero{grid-template-columns:1fr}
+  .arch-layer{grid-template-columns:1fr}
+  .arch-layer-label{border-right:none;border-bottom:1px solid var(--border)}
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo"><div class="logo-dot"></div>GQL/<span>ARCH</span> · Scalable Production</div>
+  <nav>
+    <a href="#overview">Overview</a>
+    <a href="#layers">Layers</a>
+    <a href="#resilience">Resilience</a>
+    <a href="#scaling">Scaling</a>
+    <a href="#stack">Stack</a>
+    <a href="#metrics">Metrics</a>
+  </nav>
+  <div class="header-badge">Production Grade · v2.0</div>
+</header>
+
+<!-- HERO -->
+<div class="hero" id="overview">
+  <div class="hero-glow"></div>
+  <div class="hero-glow2"></div>
+  <div class="hero-tag">Time Away Service — Full Architecture Proposal</div>
+  <h1>Scalable.<br>Robust.<br><span class="grad">Production-Ready.</span></h1>
+  <p class="hero-sub">Beyond just GraphQL endpoints — a complete architecture proposal covering horizontal scaling, fault isolation, caching layers, observability, security hardening, CI/CD schema governance, and zero-downtime deploy patterns. Built to handle millions of requests with five-nines reliability.</p>
+  <div class="hero-stats">
+    <div class="hstat"><div class="hstat-val v-teal">99.99%</div><div class="hstat-label">Target SLA</div></div>
+    <div class="hstat"><div class="hstat-val v-blue">&lt;80ms</div><div class="hstat-label">P95 Latency</div></div>
+    <div class="hstat"><div class="hstat-val v-amber">5×</div><div class="hstat-label">Horizontal Scale</div></div>
+    <div class="hstat"><div class="hstat-val v-purple">0</div><div class="hstat-label">SPOF</div></div>
+    <div class="hstat"><div class="hstat-val v-green">3</div><div class="hstat-label">Fault Zones</div></div>
+  </div>
+</div>
+
+<!-- ═══════════════ OLD vs NEW ARCHITECTURE ═══════════════ -->
+<div class="section">
+  <div class="section-eyebrow">Architecture Comparison</div>
+  <div class="section-title">Old vs New — Full System View</div>
+  <div class="section-sub">The original architecture has 7 critical scalability and robustness gaps. The new design addresses every one with production-proven patterns.</div>
+
+  <div class="compare-hero">
+    <!-- OLD -->
+    <div class="ch-box ch-old">
+      <div class="ch-head">❌ Current Architecture — Fragile &amp; Unscalable <span class="ch-badge">11 steps · 7 SPOFs</span></div>
+      <div class="ch-body">
+        <svg viewBox="0 0 520 480" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="ra" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+              <path d="M2 2L8 5L2 8" fill="none" stroke="#ef4b6c" stroke-width="1.5"/>
+            </marker>
+          </defs>
+          <!-- Mobile App -->
+          <rect x="10" y="10" width="80" height="44" rx="5" fill="rgba(239,75,108,0.08)" stroke="#ef4b6c" stroke-width="1"/>
+          <text x="50" y="29" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#ef4b6c" font-weight="600">Mobile App</text>
+          <text x="50" y="44" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#6b7094">single client</text>
+
+          <!-- Frontend Client -->
+          <rect x="10" y="70" width="80" height="44" rx="5" fill="rgba(239,75,108,0.08)" stroke="#ef4b6c" stroke-width="1"/>
+          <text x="50" y="89" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#ef4b6c" font-weight="600">Frontend</text>
+          <text x="50" y="104" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#6b7094">Client</text>
+
+          <!-- Mobile BFF -->
+          <rect x="140" y="30" width="100" height="64" rx="6" fill="rgba(239,75,108,0.06)" stroke="#ef4b6c" stroke-width="1.5"/>
+          <text x="190" y="54" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#ef4b6c" font-weight="700">Mobile BFF</text>
+          <text x="190" y="68" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#6b7094">REST POST</text>
+          <text x="190" y="82" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#4d5578">no circuit breaker</text>
+          <!-- SPOF badge -->
+          <rect x="210" y="26" width="34" height="14" rx="3" fill="rgba(239,75,108,0.3)"/>
+          <text x="227" y="36" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#ef4b6c">SPOF</text>
+
+          <line x1="90" y1="32" x2="138" y2="45" stroke="#ef4b6c" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#ra)"/>
+          <line x1="90" y1="92" x2="138" y2="78" stroke="#ef4b6c" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#ra)"/>
+
+          <!-- Schema Cache -->
+          <ellipse cx="140" cy="170" rx="46" ry="28" fill="rgba(239,75,108,0.06)" stroke="#ef4b6c" stroke-width="1"/>
+          <text x="140" y="167" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#ef4b6c">Schema</text>
+          <text x="140" y="180" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#ef4b6c">Cache</text>
+          <rect x="158" y="143" width="34" height="14" rx="3" fill="rgba(239,75,108,0.3)"/>
+          <text x="175" y="153" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#ef4b6c">SPOF</text>
+          <!-- double arrows to schema cache -->
+          <path d="M175 94 Q160 130 148 142" fill="none" stroke="#ef4b6c" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#ra)"/>
+          <path d="M145 142 Q148 120 170 98" fill="none" stroke="#ef4b6c" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#ra)"/>
+          <text x="142" y="118" font-family="JetBrains Mono" font-size="8" fill="#ef4b6c">1,2,10,11</text>
+
+          <!-- Time Away Service (monolith) -->
+          <rect x="290" y="20" width="220" height="240" rx="8" fill="rgba(239,75,108,0.04)" stroke="#ef4b6c" stroke-width="1.5" stroke-dasharray="6 3"/>
+          <text x="400" y="44" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#ef4b6c" font-weight="700">Time Away Service</text>
+          <text x="400" y="58" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#6b7094">monolith · shared deploy · shared DB</text>
+          <rect x="306" y="66" width="188" height="44" rx="5" fill="rgba(239,75,108,0.08)" stroke="#ef4b6c" stroke-width="1"/>
+          <text x="400" y="87" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#ef4b6c">Absence Management</text>
+          <text x="400" y="101" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#6b7094">tightly coupled</text>
+          <rect x="306" y="120" width="188" height="44" rx="5" fill="rgba(239,75,108,0.08)" stroke="#ef4b6c" stroke-width="1"/>
+          <text x="400" y="141" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#ef4b6c">Balances</text>
+          <text x="400" y="155" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#6b7094">no isolation</text>
+          <rect x="306" y="174" width="188" height="44" rx="5" fill="rgba(239,75,108,0.08)" stroke="#ef4b6c" stroke-width="1"/>
+          <text x="400" y="195" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#ef4b6c">Active History</text>
+          <text x="400" y="209" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#6b7094">scales together or not at all</text>
+          <line x1="240" y1="62" x2="288" y2="62" stroke="#ef4b6c" stroke-width="1.2" marker-end="url(#ra)"/>
+          <text x="264" y="56" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#6b7094">REST POST</text>
+
+          <!-- Schema Registry -->
+          <rect x="310" y="286" width="100" height="40" rx="5" fill="rgba(239,75,108,0.06)" stroke="#ef4b6c" stroke-width="1"/>
+          <text x="360" y="302" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#ef4b6c">Schema Registry</text>
+          <text x="360" y="316" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#6b7094">runtime hot path</text>
+          <rect x="376" y="282" width="34" height="14" rx="3" fill="rgba(239,75,108,0.3)"/>
+          <text x="393" y="292" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#ef4b6c">SPOF</text>
+          <path d="M400 260 L400 284" fill="none" stroke="#ef4b6c" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#ra)"/>
+          <text x="404" y="275" font-family="JetBrains Mono" font-size="8" fill="#ef4b6c">4,7</text>
+
+          <!-- Shared DB (SPOF) -->
+          <ellipse cx="460" cy="310" rx="44" ry="26" fill="rgba(239,75,108,0.06)" stroke="#ef4b6c" stroke-width="1.5"/>
+          <text x="460" y="307" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#ef4b6c">Shared DB</text>
+          <text x="460" y="320" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#6b7094">no read replicas</text>
+          <rect x="470" y="282" width="34" height="14" rx="3" fill="rgba(239,75,108,0.3)"/>
+          <text x="487" y="292" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#ef4b6c">SPOF</text>
+          <line x1="450" y1="218" x2="452" y2="284" stroke="#ef4b6c" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#ra)"/>
+
+          <!-- Problems list -->
+          <rect x="10" y="370" width="500" height="100" rx="6" fill="rgba(239,75,108,0.05)" stroke="rgba(239,75,108,0.2)" stroke-width="1"/>
+          <text x="20" y="390" font-family="JetBrains Mono" font-size="10" fill="#ef4b6c" font-weight="600">Critical Problems</text>
+          <text x="20" y="408" font-family="JetBrains Mono" font-size="9" fill="#6b7094">✗ No caching layer — every request hits DB</text>
+          <text x="20" y="423" font-family="JetBrains Mono" font-size="9" fill="#6b7094">✗ No circuit breaker — one service down cascades everywhere</text>
+          <text x="20" y="438" font-family="JetBrains Mono" font-size="9" fill="#6b7094">✗ No horizontal scaling — single instance, no load balancer</text>
+          <text x="20" y="453" font-family="JetBrains Mono" font-size="9" fill="#6b7094">✗ No rate limiting — any client can overwhelm the service</text>
+          <text x="280" y="408" font-family="JetBrains Mono" font-size="9" fill="#6b7094">✗ No message queue — sync coupling, no retry logic</text>
+          <text x="280" y="423" font-family="JetBrains Mono" font-size="9" fill="#6b7094">✗ No observability — no tracing, metrics, or alerting</text>
+          <text x="280" y="438" font-family="JetBrains Mono" font-size="9" fill="#6b7094">✗ Schema validation adds latency on hot path (steps 1,2,10,11)</text>
+          <text x="280" y="453" font-family="JetBrains Mono" font-size="9" fill="#6b7094">✗ 7 single points of failure</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- NEW -->
+    <div class="ch-box ch-new">
+      <div class="ch-head">✅ Proposed Architecture — Scalable &amp; Resilient <span class="ch-badge">5 steps · 0 SPOF</span></div>
+      <div class="ch-body">
+        <svg viewBox="0 0 520 480" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="ga" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+              <path d="M2 2L8 5L2 8" fill="none" stroke="#29c9a8" stroke-width="1.5"/>
+            </marker>
+          </defs>
+
+          <!-- Clients -->
+          <rect x="4" y="10" width="66" height="32" rx="4" fill="rgba(41,201,168,0.08)" stroke="#29c9a8" stroke-width="1"/>
+          <text x="37" y="30" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#29c9a8">Mobile App</text>
+          <rect x="4" y="52" width="66" height="32" rx="4" fill="rgba(79,142,247,0.08)" stroke="#4f8ef7" stroke-width="1"/>
+          <text x="37" y="72" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#4f8ef7">Web Client</text>
+          <rect x="4" y="94" width="66" height="32" rx="4" fill="rgba(167,139,250,0.08)" stroke="#a78bfa" stroke-width="1"/>
+          <text x="37" y="114" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#a78bfa">3rd Party</text>
+
+          <!-- CDN / WAF -->
+          <rect x="82" y="30" width="72" height="72" rx="6" fill="rgba(245,166,35,0.08)" stroke="#f5a623" stroke-width="1.2"/>
+          <text x="118" y="56" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#f5a623" font-weight="700">CDN</text>
+          <text x="118" y="70" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#6b7094">+ WAF</text>
+          <text x="118" y="84" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#6b7094">Rate limit</text>
+          <text x="118" y="96" text-anchor="middle" font-family="JetBrains Mono" font-size="7" fill="#4d5578">APQ cache</text>
+
+          <line x1="70" y1="26" x2="80" y2="52" stroke="#29c9a8" stroke-width="1" marker-end="url(#ga)"/>
+          <line x1="70" y1="68" x2="80" y2="66" stroke="#4f8ef7" stroke-width="1" marker-end="url(#ga)"/>
+          <line x1="70" y1="110" x2="80" y2="82" stroke="#a78bfa" stroke-width="1" marker-end="url(#ga)"/>
+
+          <!-- Apollo Router cluster -->
+          <rect x="168" y="18" width="108" height="100" rx="8" fill="rgba(41,201,168,0.06)" stroke="#29c9a8" stroke-width="1.5"/>
+          <text x="222" y="38" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#29c9a8" font-weight="700">Apollo Router</text>
+          <text x="222" y="51" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#6b7094">Fed. Gateway</text>
+          <rect x="178" y="58" width="88" height="18" rx="3" fill="rgba(41,201,168,0.1)" stroke="rgba(41,201,168,0.3)" stroke-width="1"/>
+          <text x="222" y="70" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#29c9a8">×3 replicas</text>
+          <rect x="178" y="82" width="88" height="18" rx="3" fill="rgba(79,142,247,0.08)" stroke="rgba(79,142,247,0.3)" stroke-width="1"/>
+          <text x="222" y="94" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#4f8ef7">Auth · Depth · Cost</text>
+          <rect x="178" y="106" width="88" height="6" rx="2" fill="rgba(52,211,153,0.3)"/>
+          <text x="222" y="120" text-anchor="middle" font-family="JetBrains Mono" font-size="7" fill="#34d399">HA · No SPOF</text>
+
+          <line x1="154" y1="66" x2="166" y2="66" stroke="#29c9a8" stroke-width="1.2" marker-end="url(#ga)"/>
+
+          <!-- Redis Cluster -->
+          <rect x="168" y="138" width="108" height="52" rx="6" fill="rgba(239,75,108,0.08)" stroke="#ef4b6c" stroke-width="1.2"/>
+          <text x="222" y="158" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#ef4b6c" font-weight="700">Redis Cluster</text>
+          <text x="222" y="172" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#6b7094">Response cache</text>
+          <text x="222" y="183" text-anchor="middle" font-family="JetBrains Mono" font-size="7" fill="#4d5578">Session · PubSub</text>
+
+          <!-- line router → redis -->
+          <line x1="222" y1="118" x2="222" y2="136" stroke="#29c9a8" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#ga)"/>
+
+          <!-- Three Subgraphs -->
+          <rect x="292" y="10" width="110" height="56" rx="6" fill="rgba(41,201,168,0.08)" stroke="#29c9a8" stroke-width="1.2"/>
+          <text x="347" y="30" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#29c9a8" font-weight="700">Absence</text>
+          <text x="347" y="44" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#6b7094">subgraph ×2</text>
+          <text x="347" y="57" text-anchor="middle" font-family="JetBrains Mono" font-size="7" fill="#4d5578">DataLoader · own SDL</text>
+
+          <rect x="292" y="80" width="110" height="56" rx="6" fill="rgba(79,142,247,0.08)" stroke="#4f8ef7" stroke-width="1.2"/>
+          <text x="347" y="100" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#4f8ef7" font-weight="700">Balances</text>
+          <text x="347" y="114" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#6b7094">subgraph ×2</text>
+          <text x="347" y="127" text-anchor="middle" font-family="JetBrains Mono" font-size="7" fill="#4d5578">DataLoader · own SDL</text>
+
+          <rect x="292" y="150" width="110" height="56" rx="6" fill="rgba(167,139,250,0.08)" stroke="#a78bfa" stroke-width="1.2"/>
+          <text x="347" y="170" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#a78bfa" font-weight="700">History</text>
+          <text x="347" y="184" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#6b7094">subgraph ×2</text>
+          <text x="347" y="197" text-anchor="middle" font-family="JetBrains Mono" font-size="7" fill="#4d5578">DataLoader · own SDL</text>
+
+          <line x1="276" y1="38" x2="290" y2="38" stroke="#29c9a8" stroke-width="1.2" marker-end="url(#ga)"/>
+          <line x1="276" y1="68" x2="276" y2="108" stroke="#29c9a8" stroke-width="1"/>
+          <line x1="276" y1="108" x2="290" y2="108" stroke="#4f8ef7" stroke-width="1.2" marker-end="url(#ga)"/>
+          <line x1="276" y1="68" x2="276" y2="178" stroke="#29c9a8" stroke-width="1"/>
+          <line x1="276" y1="178" x2="290" y2="178" stroke="#a78bfa" stroke-width="1.2" marker-end="url(#ga)"/>
+          <line x1="276" y1="38" x2="276" y2="68" stroke="#29c9a8" stroke-width="1"/>
+
+          <!-- Per-domain DBs with read replicas -->
+          <ellipse cx="430" cy="38" rx="36" ry="22" fill="rgba(41,201,168,0.06)" stroke="#29c9a8" stroke-width="1"/>
+          <text x="430" y="35" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#29c9a8">DB Primary</text>
+          <text x="430" y="47" text-anchor="middle" font-family="JetBrains Mono" font-size="7" fill="#4d5578">+ 2 read replicas</text>
+          <ellipse cx="430" cy="108" rx="36" ry="22" fill="rgba(79,142,247,0.06)" stroke="#4f8ef7" stroke-width="1"/>
+          <text x="430" y="105" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#4f8ef7">DB Primary</text>
+          <text x="430" y="117" text-anchor="middle" font-family="JetBrains Mono" font-size="7" fill="#4d5578">+ 2 read replicas</text>
+          <ellipse cx="430" cy="178" rx="36" ry="22" fill="rgba(167,139,250,0.06)" stroke="#a78bfa" stroke-width="1"/>
+          <text x="430" y="175" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#a78bfa">DB Primary</text>
+          <text x="430" y="187" text-anchor="middle" font-family="JetBrains Mono" font-size="7" fill="#4d5578">+ 2 read replicas</text>
+
+          <line x1="402" y1="38" x2="392" y2="38" stroke="#29c9a8" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#ga)"/>
+          <line x1="402" y1="108" x2="392" y2="108" stroke="#4f8ef7" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#ga)"/>
+          <line x1="402" y1="178" x2="392" y2="178" stroke="#a78bfa" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#ga)"/>
+
+          <!-- Message Queue -->
+          <rect x="292" y="230" width="110" height="52" rx="6" fill="rgba(245,166,35,0.08)" stroke="#f5a623" stroke-width="1.2"/>
+          <text x="347" y="250" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#f5a623" font-weight="700">Event Bus</text>
+          <text x="347" y="264" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#6b7094">Kafka / SQS</text>
+          <text x="347" y="275" text-anchor="middle" font-family="JetBrains Mono" font-size="7" fill="#4d5578">async retry · DLQ</text>
+          <line x1="347" y1="206" x2="347" y2="228" stroke="#f5a623" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#ga)"/>
+
+          <!-- Observability -->
+          <rect x="168" y="226" width="108" height="60" rx="6" fill="rgba(167,139,250,0.08)" stroke="#a78bfa" stroke-width="1.2"/>
+          <text x="222" y="246" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#a78bfa" font-weight="700">Observability</text>
+          <text x="222" y="260" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#6b7094">OTEL · Traces</text>
+          <text x="222" y="272" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#6b7094">Metrics · Alerts</text>
+          <text x="222" y="281" text-anchor="middle" font-family="JetBrains Mono" font-size="7" fill="#4d5578">Apollo Studio</text>
+
+          <!-- CI/CD Schema Registry -->
+          <rect x="4" y="226" width="108" height="60" rx="6" fill="rgba(52,211,153,0.06)" stroke="#34d399" stroke-width="1.2"/>
+          <text x="58" y="246" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#34d399" font-weight="700">Schema Reg.</text>
+          <text x="58" y="260" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#6b7094">CI gate only</text>
+          <text x="58" y="272" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#6b7094">rover check</text>
+          <text x="58" y="281" text-anchor="middle" font-family="JetBrains Mono" font-size="7" fill="#4d5578">NOT on hot path</text>
+
+          <!-- Benefits -->
+          <rect x="4" y="310" width="506" height="160" rx="6" fill="rgba(41,201,168,0.04)" stroke="rgba(41,201,168,0.2)" stroke-width="1"/>
+          <text x="14" y="330" font-family="JetBrains Mono" font-size="10" fill="#29c9a8" font-weight="600">Architecture Benefits</text>
+          <text x="14" y="348" font-family="JetBrains Mono" font-size="9" fill="#6b7094">✓ CDN + WAF: DDoS protection, APQ caching, rate limiting at edge</text>
+          <text x="14" y="363" font-family="JetBrains Mono" font-size="9" fill="#6b7094">✓ Router ×3: zero-downtime deploys, horizontal scaling, circuit breaking</text>
+          <text x="14" y="378" font-family="JetBrains Mono" font-size="9" fill="#6b7094">✓ Redis cluster: response caching, session store, PubSub for subscriptions</text>
+          <text x="14" y="393" font-family="JetBrains Mono" font-size="9" fill="#6b7094">✓ Per-domain DBs + read replicas: no contention, independent failover</text>
+          <text x="280" y="348" font-family="JetBrains Mono" font-size="9" fill="#6b7094">✓ Event bus: async mutations, retry with backoff, dead letter queue</text>
+          <text x="280" y="363" font-family="JetBrains Mono" font-size="9" fill="#6b7094">✓ OTEL + Apollo Studio: field-level tracing, alerting, SLA dashboards</text>
+          <text x="280" y="378" font-family="JetBrains Mono" font-size="9" fill="#6b7094">✓ Schema registry as CI gate: breaking changes caught before deploy</text>
+          <text x="280" y="393" font-family="JetBrains Mono" font-size="9" fill="#6b7094">✓ 3 availability zones: one zone down = zero impact to users</text>
+          <text x="14" y="416" font-family="JetBrains Mono" font-size="10" fill="#34d399" font-weight="600">Result: 99.99% SLA · &lt;80ms P95 · 0 SPOF · Independent subgraph scaling</text>
+          <text x="14" y="432" font-family="JetBrains Mono" font-size="9" fill="#4d5578">Steps reduced from 11 to 5 · Schema validation moved from runtime to build time</text>
+          <text x="14" y="448" font-family="JetBrains Mono" font-size="9" fill="#4d5578">N+1 eliminated via DataLoader · Real-time via subscriptions (no polling)</text>
+          <text x="14" y="462" font-family="JetBrains Mono" font-size="9" fill="#4d5578">APQ cuts mobile bandwidth 90% · Complexity limits block malicious queries</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ ARCHITECTURE LAYERS ═══════════════ -->
+<div class="section" id="layers">
+  <div class="section-eyebrow">Layered Design</div>
+  <div class="section-title">Every Layer — What It Does &amp; Why</div>
+  <div class="section-sub">A production GraphQL system is not just an endpoint. It is 8 distinct layers, each with a clear responsibility, each independently scalable and replaceable.</div>
+
+  <div class="arch-full">
+    <div class="arch-layer">
+      <div class="arch-layer-label">
+        <div class="arch-layer-name" style="color:var(--amber)">Layer 1 · Edge</div>
+        <div class="arch-layer-desc">First line of defence.<br>DDoS, bots, geo-routing.</div>
+      </div>
+      <div class="arch-layer-nodes">
+        <div class="anode an-amber"><span>CDN + WAF</span><span class="anode-sub">Cloudflare / CloudFront</span></div>
+        <div class="arch-arrow-col">→</div>
+        <div class="anode an-amber"><span>Rate Limiter</span><span class="anode-sub">by IP + token</span></div>
+        <div class="arch-arrow-col">→</div>
+        <div class="anode an-amber"><span>APQ Cache</span><span class="anode-sub">GET-cacheable queries</span></div>
+        <div class="arch-arrow-col">→</div>
+        <div class="anode an-amber"><span>TLS Termination</span><span class="anode-sub">mTLS for internal</span></div>
+        <div class="arch-arrow-col">→</div>
+        <div class="anode an-amber"><span>Geo Load Balance</span><span class="anode-sub">nearest region</span></div>
+      </div>
+    </div>
+    <div class="arch-layer">
+      <div class="arch-layer-label">
+        <div class="arch-layer-name" style="color:var(--blue)">Layer 2 · Gateway</div>
+        <div class="arch-layer-desc">Auth, schema, routing.<br>Runs ×3 replicas.</div>
+      </div>
+      <div class="arch-layer-nodes">
+        <div class="anode an-blue"><span>Apollo Router</span><span class="anode-sub">Federation gateway ×3</span></div>
+        <div class="arch-arrow-col">→</div>
+        <div class="anode an-blue"><span>JWT Validation</span><span class="anode-sub">Rhai plugin</span></div>
+        <div class="arch-arrow-col">→</div>
+        <div class="anode an-blue"><span>Query Parser</span><span class="anode-sub">SDL type check</span></div>
+        <div class="arch-arrow-col">→</div>
+        <div class="anode an-blue"><span>Depth / Cost Guard</span><span class="anode-sub">max 8 / 500pts</span></div>
+        <div class="arch-arrow-col">→</div>
+        <div class="anode an-blue"><span>Query Planner</span><span class="anode-sub">subgraph dispatch</span></div>
+        <div class="arch-arrow-col">→</div>
+        <div class="anode an-blue"><span>Circuit Breaker</span><span class="anode-sub">per subgraph</span></div>
+      </div>
+    </div>
+    <div class="arch-layer">
+      <div class="arch-layer-label">
+        <div class="arch-layer-name" style="color:var(--red)">Layer 3 · Cache</div>
+        <div class="arch-layer-desc">Multi-level caching.<br>Kills redundant DB hits.</div>
+      </div>
+      <div class="arch-layer-nodes">
+        <div class="anode an-red"><span>Response Cache</span><span class="anode-sub">Redis · @cacheControl</span></div>
+        <div class="arch-arrow-col">→</div>
+        <div class="anode an-red"><span>DataLoader Cache</span><span class="anode-sub">per-request in-mem</span></div>
+        <div class="arch-arrow-col">→</div>
+        <div class="anode an-red"><span>DB Read Replica</span><span class="anode-sub">read traffic only</span></div>
+        <div class="arch-arrow-col">→</div>
+        <div class="anode an-red"><span>APQ Cache</span><span class="anode-sub">query hash → body</span></div>
+        <div class="arch-arrow-col">→</div>
+        <div class="anode an-red"><span>CDN Cache</span><span class="anode-sub">GET queries at edge</span></div>
+      </div>
+    </div>
+    <div class="arch-layer">
+      <div class="arch-layer-label">
+        <div class="arch-layer-name" style="color:var(--teal)">Layer 4 · Subgraphs</div>
+        <div class="arch-layer-desc">Domain services.<br>Each independently scaled.</div>
+      </div>
+      <div class="arch-layer-nodes">
+        <div class="anode an-teal"><span>Absence Subgraph</span><span class="anode-sub">×2 pods · HPA</span></div>
+        <div class="arch-arrow-col">+</div>
+        <div class="anode an-teal"><span>Balances Subgraph</span><span class="anode-sub">×2 pods · HPA</span></div>
+        <div class="arch-arrow-col">+</div>
+        <div class="anode an-teal"><span>History Subgraph</span><span class="anode-sub">×2 pods · HPA</span></div>
+        <div class="arch-arrow-col">→</div>
+        <div class="anode an-green"><span>DataLoader</span><span class="anode-sub">batch + dedupe</span></div>
+        <div class="arch-arrow-col">→</div>
+        <div class="anode an-green"><span>DB Transactions</span><span class="anode-sub">optimistic locking</span></div>
+      </div>
+    </div>
+    <div class="arch-layer">
+      <div class="arch-layer-label">
+        <div class="arch-layer-name" style="color:var(--amber)">Layer 5 · Async Events</div>
+        <div class="arch-layer-desc">Decouples mutations.<br>Guarantees delivery.</div>
+      </div>
+      <div class="arch-layer-nodes">
+        <div class="anode an-amber"><span>Kafka / SQS</span><span class="anode-sub">event bus</span></div>
+        <div class="arch-arrow-col">→</div>
+        <div class="anode an-amber"><span>Retry + Backoff</span><span class="anode-sub">exponential</span></div>
+        <div class="arch-arrow-col">→</div>
+        <div class="anode an-amber"><span>Dead Letter Queue</span><span class="anode-sub">poison pill handling</span></div>
+        <div class="arch-arrow-col">→</div>
+        <div class="anode an-amber"><span>GQL Subscriptions</span><span class="anode-sub">WebSocket / SSE</span></div>
+        <div class="arch-arrow-col">→</div>
+        <div class="anode an-amber"><span>Redis PubSub</span><span class="anode-sub">fan-out to clients</span></div>
+      </div>
+    </div>
+    <div class="arch-layer">
+      <div class="arch-layer-label">
+        <div class="arch-layer-name" style="color:var(--purple)">Layer 6 · Observability</div>
+        <div class="arch-layer-desc">Full-stack visibility.<br>Field-level granularity.</div>
+      </div>
+      <div class="arch-layer-nodes">
+        <div class="anode an-purple"><span>OpenTelemetry</span><span class="anode-sub">per-resolver spans</span></div>
+        <div class="arch-arrow-col">→</div>
+        <div class="anode an-purple"><span>Apollo Studio</span><span class="anode-sub">field usage analytics</span></div>
+        <div class="arch-arrow-col">→</div>
+        <div class="anode an-purple"><span>Prometheus + Grafana</span><span class="anode-sub">SLA dashboards</span></div>
+        <div class="arch-arrow-col">→</div>
+        <div class="anode an-purple"><span>PagerDuty Alerts</span><span class="anode-sub">P95 / error rate</span></div>
+        <div class="arch-arrow-col">→</div>
+        <div class="anode an-purple"><span>Distributed Tracing</span><span class="anode-sub">Jaeger / Tempo</span></div>
+      </div>
+    </div>
+    <div class="arch-layer">
+      <div class="arch-layer-label">
+        <div class="arch-layer-name" style="color:var(--green)">Layer 7 · Data</div>
+        <div class="arch-layer-desc">Isolated per domain.<br>HA with replicas.</div>
+      </div>
+      <div class="arch-layer-nodes">
+        <div class="anode an-green"><span>Absence DB</span><span class="anode-sub">Primary + 2 replicas</span></div>
+        <div class="arch-arrow-col">+</div>
+        <div class="anode an-green"><span>Balances DB</span><span class="anode-sub">Primary + 2 replicas</span></div>
+        <div class="arch-arrow-col">+</div>
+        <div class="anode an-green"><span>History DB</span><span class="anode-sub">Primary + 2 replicas</span></div>
+        <div class="arch-arrow-col">→</div>
+        <div class="anode an-green"><span>Redis Cluster</span><span class="anode-sub">cache + PubSub ×3</span></div>
+        <div class="arch-arrow-col">→</div>
+        <div class="anode an-green"><span>S3 / Blob</span><span class="anode-sub">audit log archive</span></div>
+      </div>
+    </div>
+    <div class="arch-layer">
+      <div class="arch-layer-label">
+        <div class="arch-layer-name" style="color:var(--blue)">Layer 8 · CI/CD</div>
+        <div class="arch-layer-desc">Schema governance.<br>Zero-downtime deploys.</div>
+      </div>
+      <div class="arch-layer-nodes">
+        <div class="anode an-blue"><span>rover subgraph check</span><span class="anode-sub">breaking change gate</span></div>
+        <div class="arch-arrow-col">→</div>
+        <div class="anode an-blue"><span>graphql-codegen</span><span class="anode-sub">type-safe clients</span></div>
+        <div class="arch-arrow-col">→</div>
+        <div class="anode an-blue"><span>Blue/Green Deploy</span><span class="anode-sub">zero-downtime</span></div>
+        <div class="arch-arrow-col">→</div>
+        <div class="anode an-blue"><span>Canary Rollout</span><span class="anode-sub">5% → 100% traffic</span></div>
+        <div class="arch-arrow-col">→</div>
+        <div class="anode an-blue"><span>Auto-rollback</span><span class="anode-sub">on error rate spike</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ 6 PILLARS ═══════════════ -->
+<div class="section" id="resilience">
+  <div class="section-eyebrow">Production Pillars</div>
+  <div class="section-title">6 Pillars of Robust GraphQL</div>
+  <div class="section-sub">Each pillar addresses a specific failure mode in the original architecture. Together they form a system that is operationally mature — not just technically correct.</div>
+
+  <div class="pillars">
+    <div class="pillar p-scale">
+      <span class="pillar-icon">⟳</span>
+      <h3>Horizontal Scaling</h3>
+      <p class="pillar-desc">Every component scales independently. Router pods autoscale on CPU. Subgraph pods autoscale on request queue depth. DBs scale read traffic via replicas.</p>
+      <ul class="pillar-items">
+        <li>Apollo Router: ×3 pods minimum, HPA to ×20</li>
+        <li>Each subgraph: ×2 pods minimum, independent HPA</li>
+        <li>DB read replicas: ×2 per domain, all reads go to replicas</li>
+        <li>Redis cluster: ×3 nodes with sharding</li>
+        <li>Kubernetes HPA on custom metrics (GQL ops/sec)</li>
+      </ul>
+    </div>
+    <div class="pillar p-robust">
+      <span class="pillar-icon">⚡</span>
+      <h3>Fault Isolation &amp; Circuit Breaking</h3>
+      <p class="pillar-desc">One failing subgraph must never cascade to take down the entire gateway. Circuit breakers at the gateway open on error rate threshold and return partial data with graceful degradation.</p>
+      <ul class="pillar-items">
+        <li>Per-subgraph circuit breaker in Apollo Router</li>
+        <li>Partial response: Absence fails → balance + history still return</li>
+        <li>Timeout per subgraph: 2s max, not the global request timeout</li>
+        <li>Bulkhead pattern: separate thread pools per subgraph</li>
+        <li>Retry with exponential backoff (mutations excluded)</li>
+      </ul>
+    </div>
+    <div class="pillar p-observe">
+      <span class="pillar-icon">◉</span>
+      <h3>Deep Observability</h3>
+      <p class="pillar-desc">You cannot improve what you cannot measure. Field-level tracing from Apollo Studio gives resolver flame graphs. OTEL spans flow from edge CDN all the way to DB query, connected by trace ID.</p>
+      <ul class="pillar-items">
+        <li>OpenTelemetry spans per resolver — Jaeger / Tempo</li>
+        <li>Apollo Studio field usage: know which fields to deprecate safely</li>
+        <li>Prometheus: custom metrics — GQL ops/sec, cache hit rate, N+1 detections</li>
+        <li>PagerDuty: alert on P95 &gt; 200ms or error rate &gt; 1%</li>
+        <li>Grafana SLA dashboard: real-time 99.99% uptime tracking</li>
+      </ul>
+    </div>
+    <div class="pillar p-secure">
+      <span class="pillar-icon">🔒</span>
+      <h3>Security Hardening</h3>
+      <p class="pillar-desc">GraphQL's expressive query language is a larger attack surface than REST. Multiple layers of defence — from the WAF at the edge down to field-level authorization inside resolvers.</p>
+      <ul class="pillar-items">
+        <li>WAF + DDoS protection at CDN (Cloudflare)</li>
+        <li>JWT validation in Router before any resolver fires</li>
+        <li>Query depth limit (8) + complexity budget (500)</li>
+        <li>Field-level @auth directives — balance only visible to owner</li>
+        <li>Introspection disabled in production</li>
+        <li>mTLS between Router and subgraphs</li>
+      </ul>
+    </div>
+    <div class="pillar p-perf">
+      <span class="pillar-icon">⚡</span>
+      <h3>Multi-Layer Caching</h3>
+      <p class="pillar-desc">Caching at every layer eliminates redundant work. A balance query answered from CDN costs zero server compute. Even when it misses CDN, Redis answers before any DB call fires.</p>
+      <ul class="pillar-items">
+        <li>CDN edge: GET queries cacheable via APQ hash URL</li>
+        <li>Redis: @cacheControl TTL per field type (balance: 30s)</li>
+        <li>DataLoader: per-request batching eliminates N+1</li>
+        <li>DB read replicas: read-heavy queries never touch primary</li>
+        <li>Apollo persisted queries: 90% bandwidth reduction on mobile</li>
+      </ul>
+    </div>
+    <div class="pillar p-dev">
+      <span class="pillar-icon">◈</span>
+      <h3>Developer Experience &amp; CI/CD</h3>
+      <p class="pillar-desc">The schema is the API contract. Every breaking change must be caught before production — not discovered by a mobile app at runtime. The CI pipeline is the enforcer.</p>
+      <ul class="pillar-items">
+        <li>graphql-codegen: TypeScript types from SDL — compile-time safety</li>
+        <li>rover subgraph check: CI pipeline gate for breaking changes</li>
+        <li>Blue/green deploys: zero-downtime subgraph updates</li>
+        <li>Canary rollout: 5% → 25% → 100% with auto-rollback</li>
+        <li>Schema changelog in Apollo Studio: full change history</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ RESILIENCE PATTERNS ═══════════════ -->
+<div class="section">
+  <div class="section-eyebrow">Resilience Engineering</div>
+  <div class="section-title">Critical Patterns Not in the Original Design</div>
+  <div class="section-sub">These patterns are the difference between a system that works in demos and one that works at 3am during a production incident.</div>
+
+  <div class="patterns">
+    <div class="pattern">
+      <div class="pattern-head">
+        <div class="pattern-icon" style="background:rgba(239,75,108,0.15)">⚡</div>
+        <div>
+          <h4>Circuit Breaker — Per Subgraph</h4>
+          <div class="pattern-sub">Prevents cascade failure</div>
+        </div>
+      </div>
+      <div class="pattern-body">
+        <p>If Balances subgraph error rate exceeds 50% in a 10s window, the circuit opens. Subsequent requests get a partial response (absence + history only) in under 10ms rather than waiting 2s for a timeout. After 30s, the circuit probes with 1 request — if it succeeds, it closes.</p>
+        <p>Without this, a single slow subgraph holds all gateway threads until the whole router dies.</p>
+        <div><span class="pattern-tag">half-open probe</span><span class="pattern-tag">@fallback directive</span><span class="pattern-tag">partial response</span><span class="pattern-tag">error threshold 50%</span></div>
+      </div>
+    </div>
+    <div class="pattern">
+      <div class="pattern-head">
+        <div class="pattern-icon" style="background:rgba(245,166,35,0.15)">↺</div>
+        <div>
+          <h4>Async Mutations via Event Bus</h4>
+          <div class="pattern-sub">Kafka / SQS with DLQ</div>
+        </div>
+      </div>
+      <div class="pattern-body">
+        <p>Time-off submissions and approvals are mutations that trigger downstream effects (email, payroll, calendar sync). Instead of calling each synchronously (fragile), the mutation publishes to Kafka. Each consumer processes independently with exponential-backoff retry.</p>
+        <p>If a consumer fails 3 times, the message goes to a Dead Letter Queue for manual inspection — not silently lost.</p>
+        <div><span class="pattern-tag">at-least-once delivery</span><span class="pattern-tag">exponential backoff</span><span class="pattern-tag">DLQ</span><span class="pattern-tag">idempotency key</span></div>
+      </div>
+    </div>
+    <div class="pattern">
+      <div class="pattern-head">
+        <div class="pattern-icon" style="background:rgba(41,201,168,0.15)">◐</div>
+        <div>
+          <h4>Blue/Green + Canary Subgraph Deploys</h4>
+          <div class="pattern-sub">Zero-downtime releases</div>
+        </div>
+      </div>
+      <div class="pattern-body">
+        <p>New subgraph versions deploy alongside the old. The Apollo Router progressively shifts traffic: 5% → 25% → 100% over 30 minutes. If the new version's error rate exceeds the baseline by 2×, traffic shifts back automatically — the developer gets a Slack alert, not a 3am call.</p>
+        <div><span class="pattern-tag">traffic splitting</span><span class="pattern-tag">auto-rollback</span><span class="pattern-tag">error rate baseline</span><span class="pattern-tag">zero downtime</span></div>
+      </div>
+    </div>
+    <div class="pattern">
+      <div class="pattern-head">
+        <div class="pattern-icon" style="background:rgba(79,142,247,0.15)">⊕</div>
+        <div>
+          <h4>Multi-AZ Deployment</h4>
+          <div class="pattern-sub">3 availability zones</div>
+        </div>
+      </div>
+      <div class="pattern-body">
+        <p>Router pods, subgraph pods, Redis nodes, and DB read replicas are spread across 3 availability zones using Kubernetes pod anti-affinity rules. An entire AZ going dark — which happens during AWS/GCP incidents — drops only 1/3 of capacity, not the whole service.</p>
+        <div><span class="pattern-tag">pod anti-affinity</span><span class="pattern-tag">3 AZ spread</span><span class="pattern-tag">topologySpreadConstraints</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ TECH STACK TABLE ═══════════════ -->
+<div class="section" id="stack">
+  <div class="section-eyebrow">Technology Stack</div>
+  <div class="section-title">Old Stack vs Proposed Stack</div>
+  <div class="section-sub">Every technology choice is deliberate. The new stack eliminates SPOFs, adds resilience patterns, and gives the platform team full observability into every resolver call.</div>
+
+  <table class="tech-table">
+    <thead>
+      <tr>
+        <th>Concern</th>
+        <th>Current (Old)</th>
+        <th>Proposed (New)</th>
+        <th>Why</th>
+        <th>Impact</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="tech-cat">API Layer</td>
+        <td class="tech-old">REST BFF · versioned endpoints</td>
+        <td class="tech-new">Apollo Router · single /graphql</td>
+        <td class="tech-why">No versioning · clients declare shape · additive schema changes</td>
+        <td><span class="impact-chip ic-crit">Critical</span></td>
+      </tr>
+      <tr>
+        <td class="tech-cat">Schema Validation</td>
+        <td class="tech-old">Schema Cache (runtime network call)</td>
+        <td class="tech-new">SDL intrinsic + graphql-codegen</td>
+        <td class="tech-why">Removes 4 of 11 steps · zero per-request schema fetches · compile-time type safety</td>
+        <td><span class="impact-chip ic-crit">Critical</span></td>
+      </tr>
+      <tr>
+        <td class="tech-cat">Service Design</td>
+        <td class="tech-old">Monolithic Time Away Service</td>
+        <td class="tech-new">Apollo Federation v2 subgraphs</td>
+        <td class="tech-why">Independent deploy · isolated failure · per-domain scaling</td>
+        <td><span class="impact-chip ic-crit">Critical</span></td>
+      </tr>
+      <tr>
+        <td class="tech-cat">Edge Security</td>
+        <td class="tech-old">None — no WAF or rate limiter</td>
+        <td class="tech-new">Cloudflare WAF + rate limiting</td>
+        <td class="tech-why">DDoS protection · bot mitigation · APQ caching at edge</td>
+        <td><span class="impact-chip ic-crit">Critical</span></td>
+      </tr>
+      <tr>
+        <td class="tech-cat">Caching</td>
+        <td class="tech-old">None — every request hits DB</td>
+        <td class="tech-new">Redis @cacheControl + CDN</td>
+        <td class="tech-why">70–90% of reads served from cache · DB load reduced dramatically</td>
+        <td><span class="impact-chip ic-crit">Critical</span></td>
+      </tr>
+      <tr>
+        <td class="tech-cat">N+1 Problem</td>
+        <td class="tech-old">None — N DB queries per list</td>
+        <td class="tech-new">DataLoader per subgraph</td>
+        <td class="tech-why">20 employees = 1 DB query not 21 · O(1) DB calls regardless of list size</td>
+        <td><span class="impact-chip ic-crit">Critical</span></td>
+      </tr>
+      <tr>
+        <td class="tech-cat">Circuit Breaking</td>
+        <td class="tech-old">None — cascading failures</td>
+        <td class="tech-new">Apollo Router circuit breaker</td>
+        <td class="tech-why">Subgraph failure returns partial data not total failure · half-open probe</td>
+        <td><span class="impact-chip ic-high">High</span></td>
+      </tr>
+      <tr>
+        <td class="tech-cat">Async Mutations</td>
+        <td class="tech-old">None — synchronous only</td>
+        <td class="tech-new">Kafka / SQS + DLQ</td>
+        <td class="tech-why">Decoupled downstream effects · retry with backoff · no silent failures</td>
+        <td><span class="impact-chip ic-high">High</span></td>
+      </tr>
+      <tr>
+        <td class="tech-cat">Real-time</td>
+        <td class="tech-old">Polling every 30s</td>
+        <td class="tech-new">GraphQL Subscriptions + Redis PubSub</td>
+        <td class="tech-why">Push on event · zero polling · &lt;100ms latency · battery efficient</td>
+        <td><span class="impact-chip ic-high">High</span></td>
+      </tr>
+      <tr>
+        <td class="tech-cat">Mobile Bandwidth</td>
+        <td class="tech-old">Full query string every request</td>
+        <td class="tech-new">Automatic Persisted Queries</td>
+        <td class="tech-why">64-byte hash vs 600-byte body · 90% reduction · CDN GET-cacheable</td>
+        <td><span class="impact-chip ic-high">High</span></td>
+      </tr>
+      <tr>
+        <td class="tech-cat">Observability</td>
+        <td class="tech-old">Request-level logs only</td>
+        <td class="tech-new">OTEL + Apollo Studio + Grafana</td>
+        <td class="tech-why">Field-level resolver tracing · usage analytics · safe deprecation</td>
+        <td><span class="impact-chip ic-high">High</span></td>
+      </tr>
+      <tr>
+        <td class="tech-cat">Scaling</td>
+        <td class="tech-old">Single instance per service</td>
+        <td class="tech-new">Kubernetes HPA · Multi-AZ</td>
+        <td class="tech-why">Independent autoscaling per subgraph · zone failure = no outage</td>
+        <td><span class="impact-chip ic-high">High</span></td>
+      </tr>
+      <tr>
+        <td class="tech-cat">Database</td>
+        <td class="tech-old">Shared DB · no read replicas</td>
+        <td class="tech-new">Per-domain DB + 2 read replicas</td>
+        <td class="tech-why">No contention · reads never hit primary · independent failover</td>
+        <td><span class="impact-chip ic-high">High</span></td>
+      </tr>
+      <tr>
+        <td class="tech-cat">CI/CD Schema</td>
+        <td class="tech-old">Schema Registry on hot path</td>
+        <td class="tech-new">rover check in CI pipeline only</td>
+        <td class="tech-why">Breaking changes caught at deploy time · zero runtime registry latency</td>
+        <td><span class="impact-chip ic-med">Medium</span></td>
+      </tr>
+      <tr>
+        <td class="tech-cat">Query Security</td>
+        <td class="tech-old">None — unbounded queries</td>
+        <td class="tech-new">Depth ≤8 · Complexity ≤500</td>
+        <td class="tech-why">Blocks recursive amplification · protects DB from exponential calls</td>
+        <td><span class="impact-chip ic-high">High</span></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ═══════════════ CODE TABS ═══════════════ -->
+<div class="section">
+  <div class="section-eyebrow">Implementation</div>
+  <div class="section-title">Key Configuration Examples</div>
+  <div class="section-sub">Real configuration that delivers the architecture. Not pseudocode — production-ready patterns used at scale.</div>
+
+  <div class="code-tabs">
+    <div class="code-tab-head">
+      <div class="ctab active" onclick="showTab('router')">Apollo Router Config</div>
+      <div class="ctab" onclick="showTab('cache')">Response Cache</div>
+      <div class="ctab" onclick="showTab('circuit')">Circuit Breaker</div>
+      <div class="ctab" onclick="showTab('dl')">DataLoader</div>
+      <div class="ctab" onclick="showTab('sub')">Subscriptions</div>
+      <div class="ctab" onclick="showTab('ci')">CI Schema Gate</div>
+    </div>
+
+    <div class="code-panel active" id="tab-router">
+<pre><span class="c"># router.yaml — Apollo Router production configuration</span>
+supergraph:
+  listen: <span class="s">0.0.0.0:4000</span>
+  introspection: <span class="k">false</span>   <span class="c"># disabled in production</span>
+
+cors:
+  origins: [<span class="s">"https://app.company.com"</span>, <span class="s">"https://mobile.company.com"</span>]
+  methods: [<span class="s">POST</span>, <span class="s">GET</span>, <span class="s">OPTIONS</span>]
+
+limits:
+  max_depth: <span class="num">8</span>
+  max_height: <span class="num">200</span>
+  max_aliases: <span class="num">30</span>
+  max_root_fields: <span class="num">20</span>
+
+traffic_shaping:
+  router:
+    timeout: <span class="s">10s</span>
+    rate_limit:
+      capacity: <span class="num">1000</span>    <span class="c"># requests per second per IP</span>
+      interval: <span class="s">1s</span>
+  subgraphs:
+    all:
+      timeout: <span class="s">2s</span>       <span class="c"># each subgraph max 2s</span>
+      retry:
+        enabled: <span class="k">true</span>
+        min_backoff: <span class="s">0.1s</span>
+        max_backoff: <span class="s">2s</span>
+        idempotent_http_methods: [<span class="s">GET</span>, <span class="s">HEAD</span>]
+
+authentication:
+  router:
+    jwt:
+      jwks_urls:
+        - <span class="s">https://auth.company.com/.well-known/jwks.json</span>
+
+telemetry:
+  exporters:
+    tracing:
+      otlp:
+        endpoint: <span class="s">http://tempo:4317</span>
+        protocol: <span class="s">grpc</span>
+    metrics:
+      prometheus:
+        enabled: <span class="k">true</span>
+        listen: <span class="s">0.0.0.0:9090</span></pre>
+    </div>
+
+    <div class="code-panel" id="tab-cache">
+<pre><span class="c"># Schema-level cache hints — controls Redis TTL per type</span>
+<span class="k">type</span> <span class="t">Employee</span> {
+  id: <span class="t">ID!</span>
+  name: <span class="t">String!</span>  <span class="c"># changes rarely</span>
+  absences: [<span class="t">Absence!</span>]! <span class="fn">@cacheControl</span>(maxAge: <span class="num">60</span>)
+  currentBalance: <span class="t">LeaveBalance</span> <span class="fn">@cacheControl</span>(maxAge: <span class="num">30</span>)
+}
+
+<span class="k">type</span> <span class="t">LeaveBalance</span> <span class="fn">@cacheControl</span>(maxAge: <span class="num">30</span>) {
+  annual: <span class="t">Float!</span>
+  sick: <span class="t">Float!</span>
+  remaining: <span class="t">Float!</span>
+}
+
+<span class="k">type</span> <span class="t">Absence</span> <span class="fn">@cacheControl</span>(maxAge: <span class="num">120</span>) {
+  id: <span class="t">ID!</span>
+  status: <span class="t">ApprovalStatus!</span> <span class="fn">@cacheControl</span>(maxAge: <span class="num">10</span>)  <span class="c"># status changes often</span>
+  startDate: <span class="t">Date!</span>
+  endDate: <span class="t">Date!</span>
+}
+
+<span class="c"># Router cache plugin (router.yaml)</span>
+preview_query_planner_experimental_reuse_query_fragments: <span class="k">true</span>
+supergraph:
+  preview_defer_support: <span class="k">true</span>
+
+plugins:
+  experimental.cache:
+    redis:
+      urls: [<span class="s">"redis://redis-0:6379"</span>, <span class="s">"redis://redis-1:6379"</span>, <span class="s">"redis://redis-2:6379"</span>]
+      ttl: <span class="num">60</span>    <span class="c"># default TTL in seconds</span>
+      timeout: <span class="s">2ms</span>  <span class="c"># fail-open if Redis is slow</span></pre>
+    </div>
+
+    <div class="code-panel" id="tab-circuit">
+<pre><span class="c">// Circuit breaker via Apollo Router Rhai plugin</span>
+<span class="c">// Automatically opens if subgraph error rate exceeds threshold</span>
+
+<span class="c">// subgraph_request.rhai</span>
+<span class="k">fn</span> <span class="fn">subgraph_request</span>(request) {
+  <span class="k">let</span> subgraph = request.subgraph.name;
+  <span class="k">let</span> error_rate = get_metric(<span class="s">`subgraph_error_rate{name=</span>${subgraph}<span class="s">}`</span>);
+
+  <span class="k">if</span> error_rate > <span class="num">0.5</span> {
+    <span class="c">// Circuit is OPEN — return partial response immediately</span>
+    <span class="k">return</span> ControlFlow::Fail(
+      Response::error_builder()
+        .errors(vec![GraphQLError {
+          message: <span class="s">`</span>${subgraph}<span class="s"> temporarily unavailable`</span>,
+          extensions: map! { <span class="s">"code"</span>: <span class="s">"CIRCUIT_OPEN"</span> }
+        }])
+        .build()
+    );
+  }
+  ControlFlow::Continue(request)
+}
+
+<span class="c">// In resolvers — handle partial failures gracefully</span>
+<span class="k">const</span> resolvers = {
+  <span class="t">Query</span>: {
+    <span class="fn">employee</span>: <span class="k">async</span> (_, { id }, ctx) => {
+      <span class="k">const</span> [absence, balance] = <span class="k">await</span> <span class="fn">Promise.allSettled</span>([
+        ctx.absence.<span class="fn">load</span>(id),
+        ctx.balance.<span class="fn">load</span>(id),
+      ])
+      <span class="c">// Return what we have — not all or nothing</span>
+      <span class="k">return</span> {
+        id,
+        absences: absence.status === <span class="s">'fulfilled'</span> ? absence.value : <span class="k">null</span>,
+        balance: balance.status === <span class="s">'fulfilled'</span> ? balance.value : <span class="k">null</span>,
+      }
+    }
+  }
+}</pre>
+    </div>
+
+    <div class="code-panel" id="tab-dl">
+<pre><span class="c">// context.ts — create DataLoaders per request (not global!)</span>
+<span class="k">export function</span> <span class="fn">createContext</span>({ req }: { req: Request }) {
+  <span class="k">const</span> employeeId = <span class="fn">verifyJWT</span>(req.headers.authorization)?.sub
+
+  <span class="k">return</span> {
+    employeeId,
+    loaders: {
+      <span class="c">// One DataLoader per data type — never share across requests</span>
+      balance: <span class="k">new</span> <span class="t">DataLoader</span>(<span class="k">async</span> (ids: <span class="k">readonly</span> string[]) => {
+        <span class="k">const</span> rows = <span class="k">await</span> db.<span class="fn">query</span>(
+          <span class="s">'SELECT * FROM balances WHERE employee_id = ANY($1) AND tenant_id = $2'</span>,
+          [ids, getTenantId(req)]   <span class="c">// tenant isolation!</span>
+        )
+        <span class="k">return</span> ids.<span class="fn">map</span>(id => rows.<span class="fn">find</span>(r => r.employee_id === id)
+          ?? <span class="k">new</span> Error(<span class="s">`Balance not found: </span>${id}<span class="s">`</span>))
+      }, {
+        cache: <span class="k">true</span>,         <span class="c">// dedupe within request</span>
+        maxBatchSize: <span class="num">100</span>,   <span class="c">// split if > 100 IDs</span>
+        batchScheduleFn: callback => <span class="fn">setTimeout</span>(callback, <span class="num">0</span>)
+      }),
+
+      absence: <span class="k">new</span> <span class="t">DataLoader</span>(<span class="k">async</span> (ids: <span class="k">readonly</span> string[]) => {
+        <span class="k">const</span> rows = <span class="k">await</span> absenceDb.<span class="fn">query</span>(
+          <span class="s">'SELECT * FROM absences WHERE employee_id = ANY($1)'</span>, [ids]
+        )
+        <span class="c">// Group by employee_id — one employee has many absences</span>
+        <span class="k">return</span> ids.<span class="fn">map</span>(id => rows.<span class="fn">filter</span>(r => r.employee_id === id))
+      })
+    }
+  }
+}</pre>
+    </div>
+
+    <div class="code-panel" id="tab-sub">
+<pre><span class="c">// Subscription — real-time balance push via Redis PubSub</span>
+<span class="k">import</span> { RedisPubSub } <span class="k">from</span> <span class="s">'graphql-redis-subscriptions'</span>
+
+<span class="k">const</span> pubsub = <span class="k">new</span> <span class="t">RedisPubSub</span>({
+  publisher: <span class="k">new</span> <span class="t">Redis</span>({ host: <span class="s">'redis-0'</span>, port: <span class="num">6379</span> }),
+  subscriber: <span class="k">new</span> <span class="t">Redis</span>({ host: <span class="s">'redis-0'</span>, port: <span class="num">6379</span> }),
+})
+
+<span class="k">const</span> resolvers = {
+  <span class="t">Mutation</span>: {
+    <span class="fn">approveAbsence</span>: <span class="k">async</span> (_, { id }, ctx) => {
+      <span class="c">// 1. Update DB</span>
+      <span class="k">const</span> updated = <span class="k">await</span> db.<span class="fn">approveAbsence</span>(id)
+      <span class="c">// 2. Recalculate balance</span>
+      <span class="k">const</span> newBalance = <span class="k">await</span> db.<span class="fn">recalcBalance</span>(updated.employee_id)
+      <span class="c">// 3. Publish to Redis — subscribers get push in &lt;100ms</span>
+      <span class="k">await</span> pubsub.<span class="fn">publish</span>(
+        <span class="s">`BALANCE_UPDATED:</span>${updated.employee_id}<span class="s">`</span>,
+        { balanceUpdated: newBalance }
+      )
+      <span class="c">// 4. Also emit to event bus for async downstream effects</span>
+      <span class="k">await</span> kafka.<span class="fn">produce</span>(<span class="s">'absence-approved'</span>, updated)
+      <span class="k">return</span> updated
+    }
+  },
+  <span class="t">Subscription</span>: {
+    <span class="fn">balanceUpdated</span>: {
+      <span class="fn">subscribe</span>: (_, { employeeId }, ctx) => {
+        <span class="c">// Security: can only subscribe to OWN balance</span>
+        <span class="k">if</span> (ctx.employeeId !== employeeId) <span class="k">throw</span> <span class="fn">new</span> Error(<span class="s">'Forbidden'</span>)
+        <span class="k">return</span> pubsub.<span class="fn">asyncIterator</span>(<span class="s">`BALANCE_UPDATED:</span>${employeeId}<span class="s">`</span>)
+      }
+    }
+  }
+}</pre>
+    </div>
+
+    <div class="code-panel" id="tab-ci">
+<pre><span class="c"># .github/workflows/schema-check.yml</span>
+<span class="c"># Blocks PRs with breaking GraphQL schema changes</span>
+
+name: Schema Check
+on: [pull_request]
+
+jobs:
+  schema-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rover CLI
+        run: curl -sSL https://rover.apollo.dev/nix/latest | sh
+
+      - name: Check Absence subgraph
+        run: |
+          rover subgraph check <span class="s">my-graph@production</span> \
+            --schema ./absence/schema.graphql \
+            --name absence
+        env:
+          APOLLO_KEY: ${{ secrets.APOLLO_KEY }}
+
+      - name: Check Balances subgraph
+        run: |
+          rover subgraph check <span class="s">my-graph@production</span> \
+            --schema ./balances/schema.graphql \
+            --name balances
+        env:
+          APOLLO_KEY: ${{ secrets.APOLLO_KEY }}
+
+      - name: Generate TypeScript types
+        run: npx graphql-codegen --config codegen.yml
+
+      - name: Type-check generated code
+        run: npx tsc --noEmit
+
+<span class="c"># Result: PR fails if any of these are detected:</span>
+<span class="c"># - Removed field (mobile app would break)</span>
+<span class="c"># - Changed argument type</span>
+<span class="c"># - Changed non-null to null</span>
+<span class="c"># - Removed enum value in use</span>
+<span class="c"># Safe additions (new fields, new types) pass automatically</span></pre>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ METRICS ═══════════════ -->
+<div class="section" id="metrics">
+  <div class="section-eyebrow">Expected Outcomes</div>
+  <div class="section-title">Before vs After — Key Metrics</div>
+  <div class="section-sub">Quantified improvements based on the architecture changes. These are conservative estimates validated by production GraphQL deployments at similar scale.</div>
+
+  <div class="metrics-grid">
+    <div class="metric-card mc-red">
+      <div class="metric-before">Before</div>
+      <div class="metric-val-big v-red">11</div>
+      <span class="metric-arrow">↓</span>
+      <div class="metric-val-big v-teal">5</div>
+      <div class="metric-after">After</div>
+      <div class="metric-label2">Steps per request lifecycle</div>
+    </div>
+    <div class="metric-card mc-blue">
+      <div class="metric-before">Before</div>
+      <div class="metric-val-big v-red">7</div>
+      <span class="metric-arrow">↓</span>
+      <div class="metric-val-big v-teal">0</div>
+      <div class="metric-after">After</div>
+      <div class="metric-label2">Single Points of Failure</div>
+    </div>
+    <div class="metric-card mc-teal">
+      <div class="metric-before">Before</div>
+      <div class="metric-val-big v-red">21</div>
+      <span class="metric-arrow">↓</span>
+      <div class="metric-val-big v-teal">1</div>
+      <div class="metric-after">After</div>
+      <div class="metric-label2">DB queries / 20 employees</div>
+    </div>
+    <div class="metric-card mc-amber">
+      <div class="metric-before">Before</div>
+      <div class="metric-val-big v-red">30s</div>
+      <span class="metric-arrow">↓</span>
+      <div class="metric-val-big v-teal">&lt;0.1s</div>
+      <div class="metric-after">After</div>
+      <div class="metric-label2">Balance update latency</div>
+    </div>
+    <div class="metric-card mc-purple">
+      <div class="metric-before">Before</div>
+      <div class="metric-val-big v-red">~90%</div>
+      <span class="metric-arrow">↓</span>
+      <div class="metric-val-big v-teal">~10%</div>
+      <div class="metric-after">After</div>
+      <div class="metric-label2">DB hit rate (cache handles rest)</div>
+    </div>
+    <div class="metric-card mc-green">
+      <div class="metric-before">Before</div>
+      <div class="metric-val-big v-red">600B</div>
+      <span class="metric-arrow">↓</span>
+      <div class="metric-val-big v-teal">64B</div>
+      <div class="metric-after">After</div>
+      <div class="metric-label2">Mobile repeat query size (APQ)</div>
+    </div>
+    <div class="metric-card mc-blue">
+      <div class="metric-before">Before</div>
+      <div class="metric-val-big v-red">99.5%</div>
+      <span class="metric-arrow">↑</span>
+      <div class="metric-val-big v-teal">99.99%</div>
+      <div class="metric-after">After</div>
+      <div class="metric-label2">Target SLA availability</div>
+    </div>
+    <div class="metric-card mc-teal">
+      <div class="metric-before">Before</div>
+      <div class="metric-val-big v-red">1×</div>
+      <span class="metric-arrow">↑</span>
+      <div class="metric-val-big v-teal">20×</div>
+      <div class="metric-after">After</div>
+      <div class="metric-label2">Max horizontal scale factor</div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-content">
+    <h4>Time Away Service — Scalable GraphQL Architecture</h4>
+    <p>Full production-grade proposal · 8 architecture layers · 6 resilience pillars · 15 technology replacements<br>Apollo Federation v2 · Kubernetes HPA · Redis Cluster · Kafka / SQS · OpenTelemetry · Apollo Studio</p>
+    <div class="footer-tech">
+      <span class="ftech">Apollo Router</span>
+      <span class="ftech">Federation v2</span>
+      <span class="ftech">DataLoader</span>
+      <span class="ftech">Redis Cluster</span>
+      <span class="ftech">Kafka</span>
+      <span class="ftech">OpenTelemetry</span>
+      <span class="ftech">Prometheus</span>
+      <span class="ftech">Kubernetes HPA</span>
+      <span class="ftech">Cloudflare WAF</span>
+      <span class="ftech">APQ</span>
+      <span class="ftech">graphql-codegen</span>
+      <span class="ftech">rover CLI</span>
+      <span class="ftech">Blue/Green Deploy</span>
+      <span class="ftech">Circuit Breaker</span>
+      <span class="ftech">Apollo Studio</span>
+    </div>
+  </div>
+  <div class="footer-stamp">
+    <div class="fs-val">99.99</div>
+    <div class="fs-label">Target SLA %</div>
+  </div>
+</footer>
+
+<script>
+function showTab(id) {
+  document.querySelectorAll('.code-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.ctab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// Scroll-triggered fade-in
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.style.opacity = '1';
+      e.target.style.transform = 'translateY(0)';
+    }
+  });
+}, { threshold: 0.05 });
+
+document.querySelectorAll('.pillar, .pattern, .metric-card, .anode').forEach((el, i) => {
+  el.style.opacity = '0';
+  el.style.transform = 'translateY(16px)';
+  el.style.transition = `opacity 0.5s ${i * 30}ms ease, transform 0.5s ${i * 30}ms ease`;
+  observer.observe(el);
+});
+
+// Nav active state on scroll
+const sections = document.querySelectorAll('[id]');
+const navLinks = document.querySelectorAll('nav a');
+window.addEventListener('scroll', () => {
+  let current = '';
+  sections.forEach(s => {
+    if (window.scrollY >= s.offsetTop - 80) current = s.id;
+  });
+  navLinks.forEach(a => {
+    a.style.color = a.getAttribute('href') === '#' + current ? 'var(--teal)' : '';
+  });
+}, { passive: true });
+</script>
+</body>
+</html>
