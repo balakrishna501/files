@@ -1,0 +1,1566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEXO PayOrchestrator — AI-Driven Payroll Command Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ── RESET & BASE ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 14px; scroll-behavior: smooth; }
+
+:root {
+  /* Neutral corporate — charcoal family */
+  --bg0: #f4f5f7;        /* page bg */
+  --bg1: #ffffff;        /* panel bg */
+  --bg2: #f8f9fb;        /* inset bg */
+  --bg3: #eef0f4;        /* hover/selected */
+  --sidebar-bg: #1e2229; /* dark sidebar */
+  --sidebar-text: #c8cdd8;
+  --sidebar-muted: #6b7280;
+  --sidebar-active: #ffffff;
+  --topnav-bg: #ffffff;
+  --border: #e4e7ed;
+  --border2: #d1d5df;
+  --text1: #1a1d23;
+  --text2: #5a6070;
+  --text3: #9aa0b0;
+
+  /* Accent system — restrained, purposeful */
+  --accent: #2563eb;      /* primary blue */
+  --accent-light: #eff4ff;
+  --accent-mid: #93b4f7;
+  --green: #16a34a;
+  --green-light: #f0fdf4;
+  --amber: #d97706;
+  --amber-light: #fffbeb;
+  --red: #dc2626;
+  --red-light: #fef2f2;
+  --slate: #475569;
+  --teal: #0891b2;
+  --teal-light: #ecfeff;
+
+  /* Oracle / ADP brand refs */
+  --oracle: #C74634;
+  --oracle-light: #fff1ef;
+  --adp: #D4001A;
+  --adp-light: #fff0f1;
+  --india: #FF9933;
+  --india-light: #fff8f0;
+  --us: #2563eb;
+  --us-light: #eff4ff;
+
+  --font: 'Sora', system-ui, sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.04);
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg0);
+  color: var(--text1);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── TOPNAV ── */
+.topnav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+  height: 56px;
+  background: var(--topnav-bg);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center;
+  padding: 0 0 0 240px;
+  box-shadow: var(--shadow);
+}
+.topnav-inner {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%; padding: 0 24px;
+}
+.breadcrumb {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; color: var(--text3);
+}
+.breadcrumb-sep { color: var(--border2); }
+.breadcrumb-current { color: var(--text1); font-weight: 600; }
+
+.topnav-right { display: flex; align-items: center; gap: 16px; }
+.country-toggle {
+  display: flex; background: var(--bg2); border: 1px solid var(--border); border-radius: 20px; padding: 3px;
+}
+.ctry-btn {
+  padding: 4px 14px; border-radius: 16px; font-size: 11px; font-weight: 600;
+  cursor: pointer; transition: all 0.2s; border: none; background: transparent;
+  font-family: var(--font); display: flex; align-items: center; gap: 6px;
+  color: var(--text2);
+}
+.ctry-btn.active-us { background: #fff; color: var(--us); box-shadow: var(--shadow); }
+.ctry-btn.active-in { background: #fff; color: var(--india); box-shadow: var(--shadow); }
+.flag { font-size: 14px; }
+
+.ai-pill {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 12px; border-radius: 20px;
+  background: var(--accent-light); border: 1px solid var(--accent-mid);
+  font-size: 11px; font-weight: 600; color: var(--accent);
+}
+.ai-pulse { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: blink 2s infinite; }
+@keyframes blink { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.8)} }
+
+.user-chip {
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 12px 4px 4px; border-radius: 20px;
+  background: var(--bg2); border: 1px solid var(--border);
+  font-size: 12px; cursor: pointer;
+}
+.user-avatar {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--accent); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700;
+}
+
+.notif-btn {
+  width: 34px; height: 34px; border-radius: var(--radius); border: 1px solid var(--border);
+  background: var(--bg1); display: flex; align-items: center; justify-content: center;
+  cursor: pointer; position: relative; font-size: 15px; transition: all 0.15s;
+}
+.notif-btn:hover { background: var(--bg3); }
+.notif-dot {
+  position: absolute; top: 6px; right: 6px;
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--red); border: 1.5px solid #fff;
+}
+
+/* ── SIDEBAR ── */
+.sidebar {
+  position: fixed; top: 0; left: 0; bottom: 0; width: 240px; z-index: 300;
+  background: var(--sidebar-bg);
+  display: flex; flex-direction: column;
+  overflow-y: auto;
+}
+.sidebar::-webkit-scrollbar { width: 3px; }
+.sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); }
+
+.sidebar-brand {
+  display: flex; align-items: center; gap: 10px;
+  padding: 18px 18px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.brand-mark {
+  width: 32px; height: 32px; border-radius: 9px;
+  background: linear-gradient(135deg, var(--accent) 0%, #1d4ed8 100%);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 700; color: #fff; letter-spacing: -0.5px;
+  flex-shrink: 0;
+}
+.brand-text { line-height: 1.2; }
+.brand-name { font-size: 13px; font-weight: 700; color: #fff; letter-spacing: -0.02em; }
+.brand-tagline { font-size: 10px; color: var(--sidebar-muted); font-family: var(--mono); margin-top: 1px; }
+
+.cycle-chip {
+  margin: 12px 12px 0;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: var(--radius); padding: 12px;
+}
+.cycle-chip-label { font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--sidebar-muted); margin-bottom: 5px; }
+.cycle-chip-name { font-size: 12px; font-weight: 600; color: #fff; }
+.cycle-chip-date { font-size: 10px; color: var(--sidebar-muted); margin-top: 2px; }
+.cycle-chip-progress { margin-top: 8px; height: 3px; background: rgba(255,255,255,0.08); border-radius: 2px; overflow: hidden; }
+.cycle-chip-bar { height: 100%; border-radius: 2px; background: var(--accent); }
+.cycle-chip-pct { font-size: 10px; color: var(--accent); margin-top: 4px; font-family: var(--mono); }
+
+.sb-section { margin-top: 20px; padding: 0 8px; }
+.sb-section-label {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--sidebar-muted); padding: 0 8px 6px;
+}
+.sb-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; border-radius: var(--radius);
+  font-size: 12px; font-weight: 500; color: var(--sidebar-text);
+  cursor: pointer; transition: all 0.15s;
+  border-left: 2px solid transparent;
+  margin-bottom: 1px;
+}
+.sb-item:hover { background: rgba(255,255,255,0.06); color: #fff; }
+.sb-item.active { background: rgba(37,99,235,0.2); color: #fff; border-left-color: var(--accent); }
+.sb-icon { width: 16px; font-size: 13px; text-align: center; flex-shrink: 0; opacity: 0.7; }
+.sb-item.active .sb-icon { opacity: 1; }
+.sb-badge {
+  margin-left: auto; font-size: 10px; padding: 1px 6px; border-radius: 10px; font-weight: 700;
+  flex-shrink: 0;
+}
+.sb-badge-red { background: rgba(220,38,38,0.25); color: #fca5a5; }
+.sb-badge-amber { background: rgba(217,119,6,0.25); color: #fcd34d; }
+.sb-badge-blue { background: rgba(37,99,235,0.3); color: #93c5fd; }
+.sb-badge-green { background: rgba(22,163,74,0.25); color: #86efac; }
+
+.sb-footer {
+  margin-top: auto; padding: 16px 12px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.sb-footer-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 8px; border-radius: var(--radius);
+  font-size: 11px; color: var(--sidebar-muted); cursor: pointer; transition: all 0.15s;
+}
+.sb-footer-item:hover { background: rgba(255,255,255,0.06); color: var(--sidebar-text); }
+
+/* ── MAIN LAYOUT ── */
+.page-wrap {
+  margin-left: 240px;
+  padding-top: 56px;
+  min-height: 100vh;
+  display: flex; flex-direction: column;
+}
+.main-content { flex: 1; padding: 24px; }
+
+/* ── PAGE HEADER ── */
+.page-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 20px;
+}
+.page-title-group {}
+.page-eyebrow { font-size: 11px; font-weight: 600; color: var(--text3); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 4px; }
+.page-title { font-size: 22px; font-weight: 700; color: var(--text1); letter-spacing: -0.03em; }
+.page-sub { font-size: 12px; color: var(--text2); margin-top: 3px; display: flex; align-items: center; gap: 8px; }
+.live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); display: inline-block; animation: blink 2s infinite; }
+
+.btn-row { display: flex; gap: 8px; align-items: center; }
+.btn {
+  padding: 8px 16px; border-radius: var(--radius); font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: all 0.15s; font-family: var(--font); border: none;
+  display: flex; align-items: center; gap: 6px;
+}
+.btn-outline { background: var(--bg1); color: var(--text1); border: 1px solid var(--border2); }
+.btn-outline:hover { background: var(--bg3); }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: #1d4ed8; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37,99,235,0.3); }
+.btn-danger { background: var(--red-light); color: var(--red); border: 1px solid #fecaca; }
+.btn-danger:hover { background: #fee2e2; }
+
+/* ── COUNTRY BANDS ── */
+.country-section { margin-bottom: 28px; }
+.country-header {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
+  padding-bottom: 10px; border-bottom: 2px solid var(--border);
+}
+.country-header.us { border-bottom-color: var(--us); }
+.country-header.in { border-bottom-color: var(--india); }
+.country-flag-badge {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 12px; border-radius: 20px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+}
+.badge-us { background: var(--us-light); color: var(--us); border: 1px solid #bfdbfe; }
+.badge-in { background: var(--india-light); color: #b45309; border: 1px solid #fed7aa; }
+.country-title { font-size: 15px; font-weight: 700; color: var(--text1); }
+.country-subtitle { font-size: 11px; color: var(--text2); margin-left: auto; }
+.hcm-tag {
+  display: flex; align-items: center; gap: 5px;
+  padding: 3px 10px; border-radius: 5px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
+}
+.tag-oracle { background: var(--oracle-light); color: var(--oracle); border: 1px solid #fecaca; }
+.tag-adp { background: #fff0f1; color: #991b1b; border: 1px solid #fecaca; }
+
+/* ── KPI CARDS ── */
+.kpi-row { display: grid; gap: 12px; margin-bottom: 16px; }
+.kpi-row-5 { grid-template-columns: repeat(5, 1fr); }
+.kpi-row-4 { grid-template-columns: repeat(4, 1fr); }
+.kpi-card {
+  background: var(--bg1); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 16px; position: relative; overflow: hidden;
+  box-shadow: var(--shadow); cursor: pointer; transition: all 0.2s;
+}
+.kpi-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); border-color: var(--border2); }
+.kpi-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 3px 3px 0 0;
+}
+.kpi-c-blue::before { background: var(--accent); }
+.kpi-c-green::before { background: var(--green); }
+.kpi-c-amber::before { background: var(--amber); }
+.kpi-c-red::before { background: var(--red); }
+.kpi-c-slate::before { background: var(--slate); }
+.kpi-c-teal::before { background: var(--teal); }
+.kpi-c-oracle::before { background: var(--oracle); }
+.kpi-c-adp::before { background: var(--adp); }
+
+.kpi-label { font-size: 10px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text3); margin-bottom: 8px; }
+.kpi-value { font-size: 24px; font-weight: 700; color: var(--text1); letter-spacing: -0.03em; line-height: 1; }
+.kpi-sub { font-size: 11px; color: var(--text2); margin-top: 4px; }
+.kpi-delta {
+  display: inline-flex; align-items: center; gap: 3px;
+  margin-top: 6px; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px;
+}
+.delta-up { background: var(--green-light); color: var(--green); }
+.delta-warn { background: var(--amber-light); color: var(--amber); }
+.delta-err { background: var(--red-light); color: var(--red); }
+.delta-neutral { background: var(--bg3); color: var(--text2); }
+
+/* ── PIPELINE ── */
+.pipeline-panel {
+  background: var(--bg1); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow); margin-bottom: 16px; overflow: hidden;
+}
+.pipeline-panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px; border-bottom: 1px solid var(--border);
+  background: var(--bg2);
+}
+.panel-title-text {
+  font-size: 13px; font-weight: 700; color: var(--text1);
+  display: flex; align-items: center; gap: 8px;
+}
+.panel-actions { display: flex; gap: 6px; }
+.panel-btn {
+  padding: 5px 10px; border-radius: 6px; font-size: 11px; font-weight: 600;
+  border: 1px solid var(--border); background: var(--bg1); color: var(--text2);
+  cursor: pointer; font-family: var(--font); transition: all 0.12s;
+}
+.panel-btn:hover { background: var(--bg3); color: var(--text1); }
+
+.pipeline-body { padding: 20px; }
+.pipeline-stages { display: flex; align-items: flex-start; gap: 0; position: relative; }
+.p-stage { flex: 1; display: flex; flex-direction: column; align-items: center; position: relative; }
+.p-connector {
+  position: absolute; top: 14px; left: 50%; right: -50%;
+  height: 2px; z-index: 0;
+}
+.p-connector.done { background: var(--green); }
+.p-connector.active { background: linear-gradient(90deg, var(--green) 0%, var(--accent) 100%); }
+.p-connector.pending { background: var(--border); }
+.p-connector.adp-done { background: var(--adp); }
+
+.p-dot {
+  width: 28px; height: 28px; border-radius: 50%; z-index: 1;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; border: 2px solid; transition: all 0.2s;
+  position: relative; background: var(--bg1); cursor: pointer;
+}
+.pd-done { border-color: var(--green); color: var(--green); background: var(--green-light); }
+.pd-active { border-color: var(--accent); color: var(--accent); background: var(--accent-light); animation: ring 2s infinite; }
+.pd-pending { border-color: var(--border2); color: var(--text3); background: var(--bg2); }
+.pd-error { border-color: var(--red); color: var(--red); background: var(--red-light); }
+.pd-adp-done { border-color: var(--adp); color: var(--adp); background: #fff0f1; }
+.pd-adp-active { border-color: var(--adp); color: var(--adp); background: #fff0f1; animation: ring-adp 2s infinite; }
+
+@keyframes ring { 0%,100%{box-shadow:0 0 0 0 rgba(37,99,235,0.3)} 60%{box-shadow:0 0 0 6px rgba(37,99,235,0)} }
+@keyframes ring-adp { 0%,100%{box-shadow:0 0 0 0 rgba(212,0,26,0.3)} 60%{box-shadow:0 0 0 6px rgba(212,0,26,0)} }
+
+.p-name { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text2); margin-top: 6px; text-align: center; line-height: 1.3; }
+.p-sub { font-size: 9px; color: var(--text3); margin-top: 2px; text-align: center; }
+.p-sub.active-txt { color: var(--accent); font-weight: 600; }
+.p-sub.adp-active-txt { color: var(--adp); font-weight: 600; }
+
+.pipeline-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 20px; border-top: 1px solid var(--border); background: var(--bg2);
+  font-size: 11px; color: var(--text2);
+}
+
+/* ── MAIN GRID ── */
+.grid-2-1 { display: grid; grid-template-columns: 1fr 360px; gap: 16px; margin-bottom: 16px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+
+/* ── PANEL ── */
+.panel {
+  background: var(--bg1); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow); overflow: hidden;
+}
+.panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 13px 18px; border-bottom: 1px solid var(--border);
+}
+.panel-body { padding: 16px 18px; }
+
+/* ── JOBS TABLE ── */
+.tab-bar {
+  display: flex; border-bottom: 1px solid var(--border); padding: 0 18px;
+  background: var(--bg2);
+}
+.tab {
+  padding: 10px 14px; font-size: 11px; font-weight: 600; color: var(--text3);
+  cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;
+  transition: all 0.15s; display: flex; align-items: center; gap: 5px;
+}
+.tab:hover { color: var(--text1); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.jobs-tbl { width: 100%; border-collapse: collapse; }
+.jobs-tbl th {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+  color: var(--text3); padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border);
+  background: var(--bg2); white-space: nowrap;
+}
+.jobs-tbl td {
+  padding: 10px 14px; font-size: 12px; border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.jobs-tbl tbody tr:last-child td { border-bottom: none; }
+.jobs-tbl tbody tr:hover td { background: var(--bg2); cursor: pointer; }
+
+.job-name { font-weight: 600; font-size: 12px; color: var(--text1); }
+.job-id { font-family: var(--mono); font-size: 10px; color: var(--text3); margin-top: 1px; }
+.job-source { display: flex; align-items: center; gap: 5px; }
+.source-badge {
+  font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 4px; letter-spacing: 0.04em;
+}
+.sb-oracle { background: var(--oracle-light); color: var(--oracle); }
+.sb-adp { background: #fff0f1; color: #991b1b; }
+.sb-internal { background: var(--bg3); color: var(--slate); }
+
+.status-pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 8px; border-radius: 20px; font-size: 10px; font-weight: 700;
+  white-space: nowrap;
+}
+.sp-green { background: var(--green-light); color: var(--green); }
+.sp-blue { background: var(--accent-light); color: var(--accent); }
+.sp-amber { background: var(--amber-light); color: var(--amber); }
+.sp-red { background: var(--red-light); color: var(--red); }
+.sp-gray { background: var(--bg3); color: var(--text2); }
+.sp-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.sp-running .sp-dot { animation: blink 1.2s infinite; }
+
+.prog-bar { height: 4px; background: var(--bg3); border-radius: 2px; margin-top: 4px; overflow: hidden; }
+.prog-fill { height: 100%; border-radius: 2px; transition: width 1.5s cubic-bezier(0.4,0,0.2,1); }
+.pf-green { background: var(--green); }
+.pf-blue { background: var(--accent); }
+.pf-amber { background: var(--amber); }
+.pf-red { background: var(--red); }
+.prog-pct { font-size: 10px; color: var(--text2); font-family: var(--mono); }
+
+/* ── AI INSIGHTS ── */
+.ai-feed { display: flex; flex-direction: column; gap: 10px; }
+.ai-card {
+  border-radius: var(--radius); padding: 12px 14px;
+  border-left: 3px solid; cursor: pointer; transition: all 0.15s;
+  background: var(--bg2); border: 1px solid var(--border); border-left-width: 3px;
+}
+.ai-card:hover { background: var(--bg3); transform: translateX(2px); }
+.ai-card.ai-err { border-left-color: var(--red); }
+.ai-card.ai-warn { border-left-color: var(--amber); }
+.ai-card.ai-info { border-left-color: var(--accent); }
+.ai-card.ai-ok { border-left-color: var(--green); }
+.ai-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+.ai-card-title { font-size: 12px; font-weight: 700; line-height: 1.3; }
+.ai-card-title.t-err { color: var(--red); }
+.ai-card-title.t-warn { color: var(--amber); }
+.ai-card-title.t-info { color: var(--accent); }
+.ai-card-title.t-ok { color: var(--green); }
+.ai-severity { font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; flex-shrink: 0; }
+.sev-high { background: var(--red-light); color: var(--red); }
+.sev-med { background: var(--amber-light); color: var(--amber); }
+.sev-low { background: var(--accent-light); color: var(--accent); }
+.sev-ok { background: var(--green-light); color: var(--green); }
+.ai-card-body { font-size: 11px; color: var(--text2); line-height: 1.5; }
+.ai-card-footer { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 10px; color: var(--text3); }
+.ai-time { font-family: var(--mono); }
+.ai-action { margin-left: auto; color: var(--accent); font-weight: 700; font-size: 10px; cursor: pointer; }
+.ai-action:hover { text-decoration: underline; }
+.ai-country-tag { font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 4px; }
+.act-us { background: var(--us-light); color: var(--us); }
+.act-in { background: var(--india-light); color: #b45309; }
+
+/* ── ERROR LIST ── */
+.err-list { display: flex; flex-direction: column; gap: 8px; }
+.err-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 12px; background: var(--bg2); border-radius: var(--radius);
+  border: 1px solid var(--border); cursor: pointer; transition: all 0.15s;
+}
+.err-item:hover { background: var(--bg3); border-color: var(--border2); }
+.err-icon {
+  width: 28px; height: 28px; border-radius: 7px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 12px;
+}
+.ei-red { background: var(--red-light); color: var(--red); }
+.ei-amber { background: var(--amber-light); color: var(--amber); }
+.ei-blue { background: var(--accent-light); color: var(--accent); }
+.err-content { flex: 1; min-width: 0; }
+.err-title { font-size: 12px; font-weight: 600; color: var(--text1); }
+.err-desc { font-size: 11px; color: var(--text2); margin-top: 2px; line-height: 1.4; }
+.err-meta { font-size: 10px; color: var(--text3); margin-top: 4px; font-family: var(--mono); }
+.err-count { font-size: 18px; font-weight: 700; color: var(--red); }
+.err-arrow { color: var(--text3); align-self: center; font-size: 14px; }
+
+/* ── RECON ── */
+.recon-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.recon-cell { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; }
+.recon-val { font-size: 20px; font-weight: 700; line-height: 1; }
+.recon-lbl { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 3px; }
+.recon-ok { color: var(--green); }
+.recon-warn { color: var(--amber); }
+.recon-err { color: var(--red); }
+
+/* ── REPORTS LIST ── */
+.report-list { display: flex; flex-direction: column; gap: 6px; }
+.report-item {
+  display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+  background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius);
+  cursor: pointer; transition: all 0.15s;
+}
+.report-item:hover { background: var(--bg3); border-color: var(--border2); }
+.report-icon {
+  width: 28px; height: 28px; border-radius: 7px;
+  display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0;
+}
+.ri-green { background: var(--green-light); }
+.ri-blue { background: var(--accent-light); }
+.ri-amber { background: var(--amber-light); }
+.ri-slate { background: var(--bg3); }
+.ri-oracle { background: var(--oracle-light); }
+.ri-adp { background: #fff0f1; }
+.report-name { font-size: 12px; font-weight: 600; color: var(--text1); flex: 1; }
+.report-sub { font-size: 10px; color: var(--text3); margin-top: 1px; }
+
+/* ── AUDIT LOG ── */
+.audit-log { display: flex; flex-direction: column; gap: 0; }
+.audit-item {
+  display: flex; align-items: flex-start; gap: 12px; padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.audit-item:last-child { border-bottom: none; }
+.audit-timeline { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; width: 14px; padding-top: 4px; }
+.audit-dot-wrap { width: 10px; height: 10px; border-radius: 50%; background: var(--border2); display: flex; align-items: center; justify-content: center; }
+.audit-dot-inner { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
+.audit-line { width: 1px; background: var(--border); flex: 1; min-height: 16px; margin-top: 3px; }
+.audit-content { flex: 1; min-width: 0; }
+.audit-action { font-size: 12px; font-weight: 600; color: var(--text1); }
+.audit-detail { font-size: 11px; color: var(--text2); margin-top: 1px; }
+.audit-meta { font-size: 10px; color: var(--text3); margin-top: 3px; font-family: var(--mono); display: flex; gap: 8px; }
+.audit-user { font-weight: 600; color: var(--text2); }
+
+/* ── SIGN-OFF TRACKER ── */
+.signoff-list { display: flex; flex-direction: column; gap: 8px; }
+.signoff-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.sof-avatar { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+.sof-info { flex: 1; }
+.sof-name { font-size: 12px; font-weight: 600; }
+.sof-role { font-size: 10px; color: var(--text3); }
+.sof-status { font-size: 11px; font-weight: 600; }
+.sof-done { color: var(--green); }
+.sof-pending { color: var(--amber); }
+
+/* ── SPARK CHART ── */
+.spark { display: flex; align-items: flex-end; gap: 3px; height: 36px; }
+.spark-b { flex: 1; border-radius: 2px 2px 0 0; transition: opacity 0.2s; cursor: pointer; }
+.spark-b:hover { opacity: 1 !important; }
+
+/* ── LIVE TICKER ── */
+.ticker {
+  position: fixed; bottom: 0; left: 240px; right: 0; z-index: 100;
+  height: 30px; background: var(--sidebar-bg); border-top: 1px solid rgba(255,255,255,0.06);
+  display: flex; align-items: center; overflow: hidden;
+}
+.ticker-label {
+  padding: 0 14px; font-size: 9px; font-weight: 800; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--accent); border-right: 1px solid rgba(255,255,255,0.08);
+  height: 100%; display: flex; align-items: center; background: var(--sidebar-bg); z-index: 1;
+  white-space: nowrap; flex-shrink: 0;
+}
+.ticker-scroll { overflow: hidden; flex: 1; }
+.ticker-track { display: flex; animation: scroll 35s linear infinite; width: max-content; }
+@keyframes scroll { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+.t-item { padding: 0 20px; font-size: 10px; color: rgba(255,255,255,0.45); white-space: nowrap; display: flex; align-items: center; gap: 6px; }
+.t-sep { color: rgba(255,255,255,0.12); }
+.t-green { color: #4ade80; font-weight: 700; }
+.t-amber { color: #fbbf24; font-weight: 700; }
+.t-red { color: #f87171; font-weight: 700; }
+.t-blue { color: #93c5fd; font-weight: 700; }
+.t-oracle { color: #fca5a5; font-weight: 700; }
+
+/* ── DIVIDER ── */
+.section-divider {
+  height: 1px; background: var(--border); margin: 24px 0;
+  display: flex; align-items: center; gap: 12px;
+}
+.section-divider::before, .section-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.divider-text { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text3); white-space: nowrap; }
+
+/* ── BOTTOM PADDING FOR TICKER ── */
+.main-content { padding-bottom: 48px; }
+
+/* ── RESPONSIVE HELPER ── */
+.chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; padding: 2px 7px; border-radius: 5px;
+  font-weight: 600; margin-left: 6px;
+}
+.chip-slate { background: var(--bg3); color: var(--slate); }
+.chip-blue { background: var(--accent-light); color: var(--accent); }
+
+/* ── FADE-IN ANIMATION ── */
+@keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+.kpi-card { animation: fadeUp 0.4s ease both; }
+.kpi-card:nth-child(1){animation-delay:0.05s}
+.kpi-card:nth-child(2){animation-delay:0.1s}
+.kpi-card:nth-child(3){animation-delay:0.15s}
+.kpi-card:nth-child(4){animation-delay:0.2s}
+.kpi-card:nth-child(5){animation-delay:0.25s}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════ SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-mark">N</div>
+    <div class="brand-text">
+      <div class="brand-name">NEXO</div>
+      <div class="brand-tagline">PayOrchestrator v2.0</div>
+    </div>
+  </div>
+
+  <div class="cycle-chip">
+    <div class="cycle-chip-label">Active Cycle</div>
+    <div class="cycle-chip-name">Main Payroll — US &amp; IN</div>
+    <div class="cycle-chip-date">Jan 01–31, 2026 · Sign-off Jan 26</div>
+    <div class="cycle-chip-progress"><div class="cycle-chip-bar" style="width:62%"></div></div>
+    <div class="cycle-chip-pct">Stage 7 of 11 · 62%</div>
+  </div>
+
+  <div class="sb-section">
+    <div class="sb-section-label">Command Center</div>
+    <div class="sb-item active"><span class="sb-icon">⊞</span>Orchestrator<span class="sb-badge sb-badge-blue">Live</span></div>
+    <div class="sb-item"><span class="sb-icon">◎</span>Pay Cycle Pipeline</div>
+    <div class="sb-item"><span class="sb-icon">⊡</span>Data Sources<span class="sb-badge sb-badge-amber">3</span></div>
+  </div>
+
+  <div class="sb-section">
+    <div class="sb-section-label">HCM Jobs</div>
+    <div class="sb-item"><span class="sb-icon">▷</span>Batch Job Monitor<span class="sb-badge sb-badge-blue">14</span></div>
+    <div class="sb-item"><span class="sb-icon">⊕</span>Payroll Calc Engine</div>
+    <div class="sb-item"><span class="sb-icon">↻</span>Retro Processor</div>
+    <div class="sb-item"><span class="sb-icon">⚡</span>Oracle HCM Jobs</div>
+    <div class="sb-item"><span class="sb-icon">⊘</span>ADP Process Jobs<span class="sb-badge sb-badge-amber">2</span></div>
+    <div class="sb-item"><span class="sb-icon">✕</span>Error Handler<span class="sb-badge sb-badge-red">18</span></div>
+  </div>
+
+  <div class="sb-section">
+    <div class="sb-section-label">Reports</div>
+    <div class="sb-item"><span class="sb-icon">≡</span>Payroll Register</div>
+    <div class="sb-item"><span class="sb-icon">$</span>Earnings &amp; Deductions</div>
+    <div class="sb-item"><span class="sb-icon">⊟</span>Tax — Form 941/940</div>
+    <div class="sb-item"><span class="sb-icon">◈</span>W-2 / Form 16 / ACA</div>
+    <div class="sb-item"><span class="sb-icon">↗</span>GL Export · ERP</div>
+    <div class="sb-item"><span class="sb-icon">⊛</span>PF / ESI — India<span class="sb-badge sb-badge-green">Ready</span></div>
+  </div>
+
+  <div class="sb-section">
+    <div class="sb-section-label">Compliance &amp; Audit</div>
+    <div class="sb-item"><span class="sb-icon">✓</span>SOX Audit Trail</div>
+    <div class="sb-item"><span class="sb-icon">☆</span>FLSA Validation<span class="sb-badge sb-badge-amber">2</span></div>
+    <div class="sb-item"><span class="sb-icon">◉</span>State Tax Recon</div>
+    <div class="sb-item"><span class="sb-icon">⊛</span>Labour Law — India</div>
+  </div>
+
+  <div class="sb-footer">
+    <div class="sb-footer-item"><span>⚙</span>Settings</div>
+    <div class="sb-footer-item"><span>?</span>Help &amp; Docs</div>
+    <div class="sb-footer-item"><span>↙</span>Sign out</div>
+  </div>
+</aside>
+
+<!-- ══════════════════════════════════════════════ TOP NAV -->
+<nav class="topnav">
+  <div class="topnav-inner">
+    <div class="breadcrumb">
+      <span>NEXO</span>
+      <span class="breadcrumb-sep">›</span>
+      <span>Payroll</span>
+      <span class="breadcrumb-sep">›</span>
+      <span class="breadcrumb-current">Orchestrator Dashboard</span>
+    </div>
+    <div class="topnav-right">
+      <div class="country-toggle">
+        <button class="ctry-btn active-us" onclick="switchCountry('US', this)"><span class="flag">🇺🇸</span>United States</button>
+        <button class="ctry-btn" onclick="switchCountry('IN', this)"><span class="flag">🇮🇳</span>India</button>
+        <button class="ctry-btn" style="color:var(--text2)" onclick="switchCountry('ALL', this)">All Regions</button>
+      </div>
+      <div class="ai-pill"><div class="ai-pulse"></div>AI Active · 6 Insights</div>
+      <div class="notif-btn">🔔<div class="notif-dot"></div></div>
+      <div class="user-chip">
+        <div class="user-avatar">PS</div>
+        <span style="font-size:12px;font-weight:600">Priya S.</span>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════════════ PAGE BODY -->
+<div class="page-wrap">
+<div class="main-content">
+
+  <!-- PAGE HEADER -->
+  <div class="page-header">
+    <div class="page-title-group">
+      <div class="page-eyebrow">January 2026 · Run W4</div>
+      <div class="page-title">AI Payroll Orchestrator</div>
+      <div class="page-sub">
+        <span class="live-dot"></span> Live monitoring ·
+        Oracle HCM (US) + ADP Payroll (IN) · Multi-region pipeline
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-outline">📅 View Calendar</button>
+      <button class="btn btn-outline">📊 Run Report</button>
+      <button class="btn btn-primary">▷ Advance Stage</button>
+    </div>
+  </div>
+
+  <!-- ─── US REGION ─── -->
+  <div class="country-section">
+    <div class="country-header us">
+      <div class="country-flag-badge badge-us">🇺🇸 UNITED STATES</div>
+      <div class="country-title">US Payroll — Oracle HCM</div>
+      <div class="hcm-tag tag-oracle">Oracle HCM Cloud</div>
+      <div class="country-subtitle">Main Payroll · Jan 01–31, 2026 · Pay date Jan 31</div>
+    </div>
+
+    <!-- US KPIs -->
+    <div class="kpi-row kpi-row-5">
+      <div class="kpi-card kpi-c-blue">
+        <div class="kpi-label">Active Employees</div>
+        <div class="kpi-value">12,847</div>
+        <div class="kpi-sub">US headcount</div>
+        <div class="kpi-delta delta-up">▲ 142 vs prior cycle</div>
+      </div>
+      <div class="kpi-card kpi-c-green">
+        <div class="kpi-label">Records Synced</div>
+        <div class="kpi-value">71<span style="font-size:14px;color:var(--text3)">/151</span></div>
+        <div class="kpi-sub">Oracle HCM sources</div>
+        <div class="kpi-delta delta-warn">47% complete</div>
+      </div>
+      <div class="kpi-card kpi-c-amber">
+        <div class="kpi-label">Open Errors</div>
+        <div class="kpi-value" style="color:var(--red)">18</div>
+        <div class="kpi-sub">Input errors at source</div>
+        <div class="kpi-delta delta-err">Action required</div>
+      </div>
+      <div class="kpi-card kpi-c-slate">
+        <div class="kpi-label">Gross Payroll</div>
+        <div class="kpi-value">$48.2M</div>
+        <div class="kpi-sub">Estimated this cycle</div>
+        <div class="kpi-delta delta-up">▲ 2.1% vs Jan '25</div>
+      </div>
+      <div class="kpi-card kpi-c-oracle">
+        <div class="kpi-label">Oracle Jobs</div>
+        <div class="kpi-value">9</div>
+        <div class="kpi-sub">Active batch jobs</div>
+        <div class="kpi-delta delta-err">1 failed · retry queued</div>
+      </div>
+    </div>
+
+    <!-- US PIPELINE -->
+    <div class="pipeline-panel">
+      <div class="pipeline-panel-header">
+        <div class="panel-title-text">
+          US Pay Cycle Pipeline — Oracle HCM
+          <span class="chip chip-blue">Stage 7 of 11</span>
+        </div>
+        <div class="panel-actions">
+          <button class="panel-btn">Timeline</button>
+          <button class="panel-btn">All cycles</button>
+          <button class="panel-btn">Stage history</button>
+        </div>
+      </div>
+      <div class="pipeline-body">
+        <div class="pipeline-stages">
+          <div class="p-stage">
+            <div class="p-connector done" style="left:50%;width:50%;top:14px;position:absolute;height:2px"></div>
+            <div class="p-dot pd-done" title="Input complete">✓</div>
+            <div class="p-name">Input</div><div class="p-sub">Complete</div>
+          </div>
+          <div class="p-stage">
+            <div class="p-connector done" style="left:0;width:100%;top:14px;position:absolute;height:2px"></div>
+            <div class="p-dot pd-done">✓</div>
+            <div class="p-name">Validation</div><div class="p-sub">6/6 passed</div>
+          </div>
+          <div class="p-stage">
+            <div class="p-connector done" style="left:0;width:100%;top:14px;position:absolute;height:2px"></div>
+            <div class="p-dot pd-done">✓</div>
+            <div class="p-name">Recon</div><div class="p-sub">Clean</div>
+          </div>
+          <div class="p-stage">
+            <div class="p-connector done" style="left:0;width:100%;top:14px;position:absolute;height:2px"></div>
+            <div class="p-dot pd-done">✓</div>
+            <div class="p-name">Prelim Calc</div><div class="p-sub">Complete</div>
+          </div>
+          <div class="p-stage">
+            <div class="p-connector done" style="left:0;width:100%;top:14px;position:absolute;height:2px"></div>
+            <div class="p-dot pd-done">✓</div>
+            <div class="p-name">Tax Calc</div><div class="p-sub">Complete</div>
+          </div>
+          <div class="p-stage">
+            <div class="p-connector done" style="left:0;width:100%;top:14px;position:absolute;height:2px"></div>
+            <div class="p-dot pd-done">✓</div>
+            <div class="p-name">Benefits</div><div class="p-sub">Validated</div>
+          </div>
+          <div class="p-stage">
+            <div class="p-connector active" style="left:0;width:100%;top:14px;position:absolute;height:2px;background:linear-gradient(90deg,var(--green) 0%,var(--accent) 100%)"></div>
+            <div class="p-dot pd-active">→</div>
+            <div class="p-name">Sign-off</div><div class="p-sub active-txt">Active</div>
+          </div>
+          <div class="p-stage">
+            <div class="p-connector pending" style="left:0;width:100%;top:14px;position:absolute;height:2px"></div>
+            <div class="p-dot pd-pending">8</div>
+            <div class="p-name">Final Calc</div><div class="p-sub">Pending</div>
+          </div>
+          <div class="p-stage">
+            <div class="p-connector pending" style="left:0;width:100%;top:14px;position:absolute;height:2px"></div>
+            <div class="p-dot pd-pending">9</div>
+            <div class="p-name">GL Export</div><div class="p-sub">Pending</div>
+          </div>
+          <div class="p-stage">
+            <div class="p-connector pending" style="left:0;width:100%;top:14px;position:absolute;height:2px"></div>
+            <div class="p-dot pd-pending">10</div>
+            <div class="p-name">NACHA/ACH</div><div class="p-sub">Pending</div>
+          </div>
+          <div class="p-stage">
+            <div class="p-dot pd-pending">11</div>
+            <div class="p-name">Close</div><div class="p-sub">Jan 31</div>
+          </div>
+        </div>
+      </div>
+      <div class="pipeline-footer">
+        <span>Sign-off deadline: <strong style="color:var(--amber)">Jan 26, 2026 · 5:00 PM EST</strong> · Approvers: <strong>2 of 4 remaining</strong></span>
+        <span>Pay date: <strong style="color:var(--green)">Jan 31, 2026</strong></span>
+      </div>
+    </div>
+
+    <!-- US JOBS + AI -->
+    <div class="grid-2-1" style="margin-bottom:16px">
+      <div class="panel">
+        <div class="tab-bar">
+          <div class="tab active">Oracle HCM Batch Jobs</div>
+          <div class="tab">Scheduled <span class="chip chip-slate">4</span></div>
+          <div class="tab">Completed <span class="chip chip-slate">6</span></div>
+          <div class="tab">Failed <span class="chip" style="background:var(--red-light);color:var(--red)">1</span></div>
+        </div>
+        <table class="jobs-tbl">
+          <thead>
+            <tr>
+              <th>Job / ID</th>
+              <th>Source</th>
+              <th>Status</th>
+              <th>Records</th>
+              <th>Duration</th>
+              <th>Progress</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><div class="job-name">Earnings Extract</div><div class="job-id">OHC-PAY-2612</div></td>
+              <td><span class="source-badge sb-oracle">Oracle</span></td>
+              <td><span class="status-pill sp-blue sp-running"><span class="sp-dot"></span>Running</span></td>
+              <td style="font-family:var(--mono);font-size:11px">95,703</td>
+              <td style="font-family:var(--mono);font-size:11px;color:var(--text2)">14m 22s</td>
+              <td style="min-width:90px"><div class="prog-pct">78%</div><div class="prog-bar"><div class="prog-fill pf-blue" style="width:78%"></div></div></td>
+            </tr>
+            <tr>
+              <td><div class="job-name">Tax Withholding — Federal</div><div class="job-id">OHC-TAX-0194</div></td>
+              <td><span class="source-badge sb-oracle">Oracle</span></td>
+              <td><span class="status-pill sp-green"><span class="sp-dot"></span>Complete</span></td>
+              <td style="font-family:var(--mono);font-size:11px">12,847</td>
+              <td style="font-family:var(--mono);font-size:11px;color:var(--text2)">8m 11s</td>
+              <td style="min-width:90px"><div class="prog-pct">100%</div><div class="prog-bar"><div class="prog-fill pf-green" style="width:100%"></div></div></td>
+            </tr>
+            <tr>
+              <td><div class="job-name">Benefits Deduction Sync</div><div class="job-id">OHC-BEN-0088</div></td>
+              <td><span class="source-badge sb-oracle">Oracle</span></td>
+              <td><span class="status-pill sp-green"><span class="sp-dot"></span>Complete</span></td>
+              <td style="font-family:var(--mono);font-size:11px">12,847</td>
+              <td style="font-family:var(--mono);font-size:11px;color:var(--text2)">3m 44s</td>
+              <td style="min-width:90px"><div class="prog-pct">100%</div><div class="prog-bar"><div class="prog-fill pf-green" style="width:100%"></div></div></td>
+            </tr>
+            <tr>
+              <td><div class="job-name">Retro Pay Processor</div><div class="job-id">OHC-RET-0041</div></td>
+              <td><span class="source-badge sb-oracle">Oracle</span></td>
+              <td><span class="status-pill sp-amber"><span class="sp-dot"></span>Warning</span></td>
+              <td style="font-family:var(--mono);font-size:11px">348</td>
+              <td style="font-family:var(--mono);font-size:11px;color:var(--text2)">22m 07s</td>
+              <td style="min-width:90px"><div class="prog-pct" style="color:var(--amber)">61%</div><div class="prog-bar"><div class="prog-fill pf-amber" style="width:61%"></div></div></td>
+            </tr>
+            <tr style="background:var(--red-light)">
+              <td><div class="job-name">State Tax Jurisdictions</div><div class="job-id">OHC-STX-0229</div></td>
+              <td><span class="source-badge sb-oracle">Oracle</span></td>
+              <td><span class="status-pill sp-red"><span class="sp-dot"></span>Failed</span></td>
+              <td style="font-family:var(--mono);font-size:11px">—</td>
+              <td style="font-family:var(--mono);font-size:11px;color:var(--red)">Timeout</td>
+              <td style="min-width:90px"><div class="prog-pct" style="color:var(--red)">0%</div><div class="prog-bar"><div class="prog-fill pf-red" style="width:4%"></div></div></td>
+            </tr>
+            <tr>
+              <td><div class="job-name">NACHA File Generation</div><div class="job-id">ACH-GEN-0031</div></td>
+              <td><span class="source-badge sb-internal">Internal</span></td>
+              <td><span class="status-pill sp-gray"><span class="sp-dot"></span>Queued</span></td>
+              <td style="font-family:var(--mono);font-size:11px;color:var(--text3)">—</td>
+              <td style="font-family:var(--mono);font-size:11px;color:var(--text3)">—</td>
+              <td style="min-width:90px"><div class="prog-pct" style="color:var(--text3)">—</div><div class="prog-bar"><div class="prog-fill pf-blue" style="width:0%"></div></div></td>
+            </tr>
+            <tr>
+              <td><div class="job-name">GL Ledger Export — ERP</div><div class="job-id">ERP-GL-0077</div></td>
+              <td><span class="source-badge sb-internal">Internal</span></td>
+              <td><span class="status-pill sp-gray"><span class="sp-dot"></span>Queued</span></td>
+              <td style="font-family:var(--mono);font-size:11px;color:var(--text3)">—</td>
+              <td style="font-family:var(--mono);font-size:11px;color:var(--text3)">—</td>
+              <td style="min-width:90px"><div class="prog-pct" style="color:var(--text3)">—</div><div class="prog-bar"><div class="prog-fill pf-blue" style="width:0%"></div></div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- AI INSIGHTS RIGHT -->
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="panel" style="flex:1">
+          <div class="panel-header">
+            <div class="panel-title-text" style="font-size:12px">⬡ AI Job Monitoring &amp; Alerts</div>
+            <button class="panel-btn">All 6 →</button>
+          </div>
+          <div class="panel-body">
+            <div class="ai-feed">
+              <div class="ai-card ai-err">
+                <div class="ai-card-header">
+                  <div class="ai-card-title t-err">State Tax Job Timeout — NJ, NY, CA</div>
+                  <span class="ai-severity sev-high">HIGH</span>
+                </div>
+                <div class="ai-card-body">OHC-STX-0229 timed out. Identical failure pattern detected in Nov 2025. AI recommends retry with 90s override before sign-off deadline.</div>
+                <div class="ai-card-footer">
+                  <span class="ai-country-tag act-us">🇺🇸 US</span>
+                  <span class="ai-time">2m ago</span>
+                  <span class="ai-action">Auto-retry →</span>
+                </div>
+              </div>
+              <div class="ai-card ai-warn">
+                <div class="ai-card-header">
+                  <div class="ai-card-title t-warn">Retro Pay Anomaly — 3 Employees</div>
+                  <span class="ai-severity sev-med">MED</span>
+                </div>
+                <div class="ai-card-body">EE IDs 10482, 10541, 10602 show retro earnings 340% above baseline. Possible double-entry from HCM audit log change.</div>
+                <div class="ai-card-footer">
+                  <span class="ai-country-tag act-us">🇺🇸 US</span>
+                  <span class="ai-time">11m ago</span>
+                  <span class="ai-action">Review →</span>
+                </div>
+              </div>
+              <div class="ai-card ai-info">
+                <div class="ai-card-header">
+                  <div class="ai-card-title t-info">Sign-off Velocity Risk</div>
+                  <span class="ai-severity sev-med">MED</span>
+                </div>
+                <div class="ai-card-body">At current rate, 2 of 4 approvers will miss Jan 26 deadline. AI suggests sending reminder to VP Finance now.</div>
+                <div class="ai-card-footer">
+                  <span class="ai-country-tag act-us">🇺🇸 US</span>
+                  <span class="ai-time">18m ago</span>
+                  <span class="ai-action">Send nudge →</span>
+                </div>
+              </div>
+              <div class="ai-card ai-ok">
+                <div class="ai-card-header">
+                  <div class="ai-card-title t-ok">Benefits Recon — Zero Variances</div>
+                  <span class="ai-severity sev-ok">CLEAR</span>
+                </div>
+                <div class="ai-card-body">12,847 benefit deduction records validated. Zero discrepancies vs carrier invoices.</div>
+                <div class="ai-card-footer">
+                  <span class="ai-country-tag act-us">🇺🇸 US</span>
+                  <span class="ai-time">32m ago</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SIGN-OFF TRACKER -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title-text" style="font-size:12px">Sign-off Approvals</div>
+            <span style="font-size:10px;color:var(--amber);font-weight:700">2 of 4 pending</span>
+          </div>
+          <div class="panel-body" style="padding:12px 14px">
+            <div class="signoff-list">
+              <div class="signoff-item">
+                <div class="sof-avatar" style="background:var(--green-light);color:var(--green)">JM</div>
+                <div class="sof-info"><div class="sof-name">James Mitchell</div><div class="sof-role">Payroll Director</div></div>
+                <div class="sof-status sof-done">✓ Approved</div>
+              </div>
+              <div class="signoff-item">
+                <div class="sof-avatar" style="background:var(--green-light);color:var(--green)">SR</div>
+                <div class="sof-info"><div class="sof-name">Sandra Reeves</div><div class="sof-role">Controller</div></div>
+                <div class="sof-status sof-done">✓ Approved</div>
+              </div>
+              <div class="signoff-item" style="border:1px solid var(--amber-light);background:var(--amber-light)">
+                <div class="sof-avatar" style="background:#fff;color:var(--amber)">TK</div>
+                <div class="sof-info"><div class="sof-name">Tom Keller</div><div class="sof-role">VP Finance</div></div>
+                <div class="sof-status sof-pending">⏳ Pending</div>
+              </div>
+              <div class="signoff-item" style="border:1px solid var(--amber-light);background:var(--amber-light)">
+                <div class="sof-avatar" style="background:#fff;color:var(--amber)">AM</div>
+                <div class="sof-info"><div class="sof-name">Amy Chen</div><div class="sof-role">CHRO</div></div>
+                <div class="sof-status sof-pending">⏳ Pending</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- US ERROR + RECON + REPORTS -->
+    <div class="grid-3">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title-text" style="font-size:12px">Error Management <span class="chip" style="background:var(--red-light);color:var(--red)">18</span></div>
+          <button class="panel-btn">Assign all</button>
+        </div>
+        <div class="panel-body">
+          <div class="err-list">
+            <div class="err-item">
+              <div class="err-icon ei-red">✕</div>
+              <div class="err-content">
+                <div class="err-title">Missing SSN — 4 employees</div>
+                <div class="err-desc">EE IDs 10481, 10532, 10601, 10744 — W-2 filing at risk</div>
+                <div class="err-meta">Oracle HCM · FLSA · Critical</div>
+              </div>
+              <div class="err-arrow">›</div>
+            </div>
+            <div class="err-item">
+              <div class="err-icon ei-amber">!</div>
+              <div class="err-content">
+                <div class="err-title">Negative net pay — 2 records</div>
+                <div class="err-desc">Deductions exceed gross; benefit override required</div>
+                <div class="err-meta">Oracle HCM · Pre-calc</div>
+              </div>
+              <div class="err-arrow">›</div>
+            </div>
+            <div class="err-item">
+              <div class="err-icon ei-blue">⊘</div>
+              <div class="err-content">
+                <div class="err-title">Duplicate pay events — 12 records</div>
+                <div class="err-desc">AI flagged duplicate off-cycle EFT from Nov retro run</div>
+                <div class="err-meta">Oracle HCM · Auto-resolvable</div>
+              </div>
+              <div class="err-arrow">›</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title-text" style="font-size:12px">Recon Summary — US</div>
+          <button class="panel-btn">Detail →</button>
+        </div>
+        <div class="panel-body">
+          <div class="recon-grid">
+            <div class="recon-cell"><div class="recon-val recon-ok">6/6</div><div class="recon-lbl">Validated / Received</div></div>
+            <div class="recon-cell"><div class="recon-val">350</div><div class="recon-lbl">Records validated</div></div>
+            <div class="recon-cell"><div class="recon-val recon-warn">61</div><div class="recon-lbl">Recon errors at ADP</div></div>
+            <div class="recon-cell"><div class="recon-val recon-err">6</div><div class="recon-lbl">Input recon errors</div></div>
+          </div>
+          <div style="margin-top:14px">
+            <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">Error trend — 6 cycles</div>
+            <div class="spark">
+              <div class="spark-b" style="height:55%;background:var(--green);opacity:0.5"></div>
+              <div class="spark-b" style="height:70%;background:var(--green);opacity:0.5"></div>
+              <div class="spark-b" style="height:45%;background:var(--amber);opacity:0.5"></div>
+              <div class="spark-b" style="height:80%;background:var(--green);opacity:0.5"></div>
+              <div class="spark-b" style="height:60%;background:var(--green);opacity:0.5"></div>
+              <div class="spark-b" style="height:40%;background:var(--amber);opacity:1"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title-text" style="font-size:12px">Reports &amp; Audit — US</div>
+          <button class="panel-btn">Schedule →</button>
+        </div>
+        <div class="panel-body">
+          <div class="report-list">
+            <div class="report-item"><div class="report-icon ri-green">≡</div><div><div class="report-name">Payroll Register</div><div class="report-sub">Jan 2026 · 12,847 EEs · Ready</div></div><span class="status-pill sp-green" style="font-size:10px;margin-left:auto">Ready</span></div>
+            <div class="report-item"><div class="report-icon ri-blue">$</div><div><div class="report-name">Earnings &amp; Deductions</div><div class="report-sub">$48.2M gross · Pending sign-off</div></div><span class="status-pill sp-amber" style="font-size:10px;margin-left:auto">Pending</span></div>
+            <div class="report-item"><div class="report-icon ri-amber">⊟</div><div><div class="report-name">Form 941 — Q4 2025</div><div class="report-sub">Federal tax deposit · Due Jan 31</div></div><span class="status-pill sp-amber" style="font-size:10px;margin-left:auto">Due soon</span></div>
+            <div class="report-item"><div class="report-icon ri-oracle" style="color:var(--oracle)">◈</div><div><div class="report-name">W-2 Preview — 2025</div><div class="report-sub">AI-reviewed · 4 SSN issues flagged</div></div><span class="status-pill sp-red" style="font-size:10px;margin-left:auto">Action</span></div>
+            <div class="report-item"><div class="report-icon ri-slate">↗</div><div><div class="report-name">GL Export — ERP</div><div class="report-sub">Awaiting final calc completion</div></div><span class="status-pill sp-gray" style="font-size:10px;margin-left:auto">Queued</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DIVIDER -->
+  <div class="section-divider"><span class="divider-text">India Region</span></div>
+
+  <!-- ─── INDIA REGION ─── -->
+  <div class="country-section">
+    <div class="country-header in">
+      <div class="country-flag-badge badge-in">🇮🇳 INDIA</div>
+      <div class="country-title">India Payroll — ADP Process Engine</div>
+      <div class="hcm-tag tag-adp">ADP Payroll Engine</div>
+      <div class="country-subtitle">Jan 2026 · Pay date Jan 31 · INR Payroll</div>
+    </div>
+
+    <!-- India KPIs -->
+    <div class="kpi-row kpi-row-4">
+      <div class="kpi-card kpi-c-adp">
+        <div class="kpi-label">Active Employees</div>
+        <div class="kpi-value">4,312</div>
+        <div class="kpi-sub">India headcount</div>
+        <div class="kpi-delta delta-up">▲ 88 vs prior cycle</div>
+      </div>
+      <div class="kpi-card kpi-c-green">
+        <div class="kpi-label">ADP Process Status</div>
+        <div class="kpi-value" style="color:var(--green)">Stage 5</div>
+        <div class="kpi-sub">of 9 · PF &amp; ESI deducted</div>
+        <div class="kpi-delta delta-up">On track</div>
+      </div>
+      <div class="kpi-card kpi-c-amber">
+        <div class="kpi-label">Gross Payroll</div>
+        <div class="kpi-value">₹18.4Cr</div>
+        <div class="kpi-sub">Estimated this cycle</div>
+        <div class="kpi-delta delta-up">▲ 3.2% vs Jan '25</div>
+      </div>
+      <div class="kpi-card kpi-c-red">
+        <div class="kpi-label">Compliance Alerts</div>
+        <div class="kpi-value" style="color:var(--amber)">3</div>
+        <div class="kpi-sub">PF/ESI / TDS items</div>
+        <div class="kpi-delta delta-warn">Review needed</div>
+      </div>
+    </div>
+
+    <!-- India PIPELINE -->
+    <div class="pipeline-panel">
+      <div class="pipeline-panel-header">
+        <div class="panel-title-text">
+          India Pay Cycle Pipeline — ADP Payroll Engine
+          <span class="chip chip-slate">Stage 5 of 9</span>
+        </div>
+        <div class="panel-actions">
+          <button class="panel-btn">Timeline</button>
+          <button class="panel-btn">Labour compliance</button>
+        </div>
+      </div>
+      <div class="pipeline-body">
+        <div class="pipeline-stages">
+          <div class="p-stage">
+            <div class="p-connector adp-done" style="left:50%;width:50%;top:14px;position:absolute;height:2px;background:var(--adp)"></div>
+            <div class="p-dot pd-adp-done">✓</div>
+            <div class="p-name">Input</div><div class="p-sub">Complete</div>
+          </div>
+          <div class="p-stage">
+            <div class="p-connector adp-done" style="left:0;width:100%;top:14px;position:absolute;height:2px;background:var(--adp)"></div>
+            <div class="p-dot pd-adp-done">✓</div>
+            <div class="p-name">Validation</div><div class="p-sub">Passed</div>
+          </div>
+          <div class="p-stage">
+            <div class="p-connector adp-done" style="left:0;width:100%;top:14px;position:absolute;height:2px;background:var(--adp)"></div>
+            <div class="p-dot pd-adp-done">✓</div>
+            <div class="p-name">Prelim Calc</div><div class="p-sub">Done</div>
+          </div>
+          <div class="p-stage">
+            <div class="p-connector adp-done" style="left:0;width:100%;top:14px;position:absolute;height:2px;background:var(--adp)"></div>
+            <div class="p-dot pd-adp-done">✓</div>
+            <div class="p-name">PF / ESI</div><div class="p-sub">Deducted</div>
+          </div>
+          <div class="p-stage">
+            <div class="p-connector active" style="left:0;width:100%;top:14px;position:absolute;height:2px;background:linear-gradient(90deg,var(--adp),var(--amber))"></div>
+            <div class="p-dot pd-adp-active">→</div>
+            <div class="p-name">TDS Calc</div><div class="p-sub adp-active-txt">Active</div>
+          </div>
+          <div class="p-stage">
+            <div class="p-connector pending" style="left:0;width:100%;top:14px;position:absolute;height:2px"></div>
+            <div class="p-dot pd-pending">6</div>
+            <div class="p-name">Final Calc</div><div class="p-sub">Pending</div>
+          </div>
+          <div class="p-stage">
+            <div class="p-connector pending" style="left:0;width:100%;top:14px;position:absolute;height:2px"></div>
+            <div class="p-dot pd-pending">7</div>
+            <div class="p-name">Sign-off</div><div class="p-sub">Pending</div>
+          </div>
+          <div class="p-stage">
+            <div class="p-connector pending" style="left:0;width:100%;top:14px;position:absolute;height:2px"></div>
+            <div class="p-dot pd-pending">8</div>
+            <div class="p-name">NEFT / Bank</div><div class="p-sub">Pending</div>
+          </div>
+          <div class="p-stage">
+            <div class="p-dot pd-pending">9</div>
+            <div class="p-name">Close</div><div class="p-sub">Jan 31</div>
+          </div>
+        </div>
+      </div>
+      <div class="pipeline-footer">
+        <span>ADP Process Engine · TDS Section 192 calculation in progress · Form 16 generation queued</span>
+        <span>Pay date: <strong style="color:var(--green)">Jan 31, 2026</strong></span>
+      </div>
+    </div>
+
+    <!-- India Jobs + AI + Compliance -->
+    <div class="grid-2">
+      <div class="panel">
+        <div class="tab-bar">
+          <div class="tab active">ADP Batch Jobs — India</div>
+          <div class="tab">Compliance <span class="chip" style="background:var(--amber-light);color:var(--amber)">3</span></div>
+        </div>
+        <table class="jobs-tbl">
+          <thead>
+            <tr>
+              <th>Job / ID</th>
+              <th>Source</th>
+              <th>Status</th>
+              <th>Records</th>
+              <th>Progress</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><div class="job-name">Salary Processing — ADP</div><div class="job-id">ADP-IN-SAL-1101</div></td>
+              <td><span class="source-badge sb-adp">ADP</span></td>
+              <td><span class="status-pill sp-green"><span class="sp-dot"></span>Complete</span></td>
+              <td style="font-family:var(--mono);font-size:11px">4,312</td>
+              <td style="min-width:90px"><div class="prog-pct">100%</div><div class="prog-bar"><div class="prog-fill pf-green" style="width:100%"></div></div></td>
+            </tr>
+            <tr>
+              <td><div class="job-name">PF Contribution — EPFO</div><div class="job-id">ADP-IN-PF-0334</div></td>
+              <td><span class="source-badge sb-adp">ADP</span></td>
+              <td><span class="status-pill sp-green"><span class="sp-dot"></span>Complete</span></td>
+              <td style="font-family:var(--mono);font-size:11px">3,841</td>
+              <td style="min-width:90px"><div class="prog-pct">100%</div><div class="prog-bar"><div class="prog-fill pf-green" style="width:100%"></div></div></td>
+            </tr>
+            <tr>
+              <td><div class="job-name">ESI Deduction — ESIC</div><div class="job-id">ADP-IN-ESI-0221</div></td>
+              <td><span class="source-badge sb-adp">ADP</span></td>
+              <td><span class="status-pill sp-green"><span class="sp-dot"></span>Complete</span></td>
+              <td style="font-family:var(--mono);font-size:11px">1,204</td>
+              <td style="min-width:90px"><div class="prog-pct">100%</div><div class="prog-bar"><div class="prog-fill pf-green" style="width:100%"></div></div></td>
+            </tr>
+            <tr>
+              <td><div class="job-name">TDS Calculation — Sec 192</div><div class="job-id">ADP-IN-TDS-0088</div></td>
+              <td><span class="source-badge sb-adp">ADP</span></td>
+              <td><span class="status-pill sp-blue sp-running"><span class="sp-dot"></span>Running</span></td>
+              <td style="font-family:var(--mono);font-size:11px">4,312</td>
+              <td style="min-width:90px"><div class="prog-pct">54%</div><div class="prog-bar"><div class="prog-fill pf-blue" style="width:54%"></div></div></td>
+            </tr>
+            <tr>
+              <td><div class="job-name">Form 16 Generation</div><div class="job-id">ADP-IN-F16-0041</div></td>
+              <td><span class="source-badge sb-adp">ADP</span></td>
+              <td><span class="status-pill sp-gray"><span class="sp-dot"></span>Queued</span></td>
+              <td style="font-family:var(--mono);font-size:11px;color:var(--text3)">—</td>
+              <td style="min-width:90px"><div class="prog-pct" style="color:var(--text3)">—</div><div class="prog-bar"><div class="prog-fill pf-blue" style="width:0%"></div></div></td>
+            </tr>
+            <tr>
+              <td><div class="job-name">NEFT Bank File — RBI</div><div class="job-id">ADP-IN-NEFT-0019</div></td>
+              <td><span class="source-badge sb-adp">ADP</span></td>
+              <td><span class="status-pill sp-gray"><span class="sp-dot"></span>Queued</span></td>
+              <td style="font-family:var(--mono);font-size:11px;color:var(--text3)">—</td>
+              <td style="min-width:90px"><div class="prog-pct" style="color:var(--text3)">—</div><div class="prog-bar"><div class="prog-fill pf-blue" style="width:0%"></div></div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <!-- India AI Alerts -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title-text" style="font-size:12px">⬡ AI Alerts — India</div>
+          </div>
+          <div class="panel-body">
+            <div class="ai-feed">
+              <div class="ai-card ai-warn">
+                <div class="ai-card-header">
+                  <div class="ai-card-title t-warn">TDS Old vs New Tax Regime Mismatch</div>
+                  <span class="ai-severity sev-med">MED</span>
+                </div>
+                <div class="ai-card-body">47 employees have not declared tax regime for FY 2025-26. Default old regime applied — may cause excess TDS deduction.</div>
+                <div class="ai-card-footer">
+                  <span class="ai-country-tag act-in">🇮🇳 IN</span>
+                  <span class="ai-time">8m ago</span>
+                  <span class="ai-action">Notify EEs →</span>
+                </div>
+              </div>
+              <div class="ai-card ai-info">
+                <div class="ai-card-header">
+                  <div class="ai-card-title t-info">LWP Adjustment — 12 employees</div>
+                  <span class="ai-severity sev-low">LOW</span>
+                </div>
+                <div class="ai-card-body">Loss of pay deductions flagged for 12 employees. Attendance data from HRMS not yet reconciled with ADP inputs.</div>
+                <div class="ai-card-footer">
+                  <span class="ai-country-tag act-in">🇮🇳 IN</span>
+                  <span class="ai-time">25m ago</span>
+                  <span class="ai-action">Reconcile →</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- India Compliance Reports -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title-text" style="font-size:12px">Compliance Reports — India</div>
+            <button class="panel-btn">Schedule</button>
+          </div>
+          <div class="panel-body">
+            <div class="report-list">
+              <div class="report-item"><div class="report-icon ri-adp" style="color:var(--adp)">₹</div><div><div class="report-name">Payroll Register — INR</div><div class="report-sub">4,312 EEs · ₹18.4Cr gross · Ready</div></div><span class="status-pill sp-green" style="font-size:10px;margin-left:auto">Ready</span></div>
+              <div class="report-item"><div class="report-icon ri-amber">⊟</div><div><div class="report-name">PF / ESI Challan</div><div class="report-sub">EPFO &amp; ESIC filing · Due Feb 15</div></div><span class="status-pill sp-green" style="font-size:10px;margin-left:auto">Ready</span></div>
+              <div class="report-item"><div class="report-icon ri-blue">◈</div><div><div class="report-name">TDS Return — 24Q</div><div class="report-sub">Q3 FY26 · Generation queued</div></div><span class="status-pill sp-blue" style="font-size:10px;margin-left:auto">Running</span></div>
+              <div class="report-item"><div class="report-icon ri-slate">≡</div><div><div class="report-name">Form 16 — FY 2025-26</div><div class="report-sub">Awaiting TDS calc completion</div></div><span class="status-pill sp-gray" style="font-size:10px;margin-left:auto">Queued</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AUDIT LOG + GLOBAL RECON -->
+  <div class="section-divider"><span class="divider-text">Global Audit &amp; Recon</span></div>
+
+  <div class="grid-2">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title-text" style="font-size:12px">SOX Audit Trail</div>
+        <button class="panel-btn">Export →</button>
+      </div>
+      <div class="panel-body">
+        <div class="audit-log">
+          <div class="audit-item">
+            <div class="audit-timeline"><div class="audit-dot-wrap"><div class="audit-dot-inner"></div></div><div class="audit-line"></div></div>
+            <div class="audit-content">
+              <div class="audit-action">Benefits validation completed — OHC-BEN-0088</div>
+              <div class="audit-detail">12,847 records validated. No carrier invoice discrepancies. Oracle HCM → NEXO recon clean.</div>
+              <div class="audit-meta"><span class="audit-user">SYSTEM · Oracle HCM</span><span>🇺🇸 US</span><span>Today 09:14 AM EST</span></div>
+            </div>
+          </div>
+          <div class="audit-item">
+            <div class="audit-timeline"><div class="audit-dot-wrap"><div class="audit-dot-inner" style="background:var(--green)"></div></div><div class="audit-line"></div></div>
+            <div class="audit-content">
+              <div class="audit-action">Sign-off approved — James Mitchell</div>
+              <div class="audit-detail">Payroll Director sign-off recorded. Stage 7 approval 1 of 4 complete.</div>
+              <div class="audit-meta"><span class="audit-user">James Mitchell · Payroll Director</span><span>🇺🇸 US</span><span>Today 08:52 AM EST</span></div>
+            </div>
+          </div>
+          <div class="audit-item">
+            <div class="audit-timeline"><div class="audit-dot-wrap"><div class="audit-dot-inner" style="background:var(--amber)"></div></div><div class="audit-line"></div></div>
+            <div class="audit-content">
+              <div class="audit-action">AI anomaly flagged — Retro pay spike detected</div>
+              <div class="audit-detail">3 employee IDs with retro earnings 340% above baseline. Logged for review. No action taken yet.</div>
+              <div class="audit-meta"><span class="audit-user">AI Engine · NEXO</span><span>🇺🇸 US</span><span>Today 08:33 AM EST</span></div>
+            </div>
+          </div>
+          <div class="audit-item">
+            <div class="audit-timeline"><div class="audit-dot-wrap"><div class="audit-dot-inner" style="background:var(--india)"></div></div><div class="audit-line"></div></div>
+            <div class="audit-content">
+              <div class="audit-action">PF / ESI deduction completed — ADP India</div>
+              <div class="audit-detail">EPFO: ₹42.3L employee + ₹51.1L employer. ESIC: ₹4.8L. ADP challan generated.</div>
+              <div class="audit-meta"><span class="audit-user">SYSTEM · ADP India</span><span>🇮🇳 IN</span><span>Today 07:45 AM IST</span></div>
+            </div>
+          </div>
+          <div class="audit-item">
+            <div class="audit-timeline"><div class="audit-dot-wrap"><div class="audit-dot-inner" style="background:var(--red)"></div></div></div>
+            <div class="audit-content">
+              <div class="audit-action">Job failure logged — OHC-STX-0229 State Tax</div>
+              <div class="audit-detail">Timeout after 300s. NJ, NY, CA jurisdictions incomplete. Retry queued by AI engine.</div>
+              <div class="audit-meta"><span class="audit-user">SYSTEM · Oracle HCM</span><span>🇺🇸 US</span><span>Today 07:22 AM EST</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title-text" style="font-size:12px">Global Recon Dashboard</div>
+          <button class="panel-btn">Full report</button>
+        </div>
+        <div class="panel-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px">
+              <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">🇺🇸 US · Oracle HCM</div>
+              <div style="font-size:18px;font-weight:700;color:var(--green)">$48.2M</div>
+              <div style="font-size:10px;color:var(--text2);margin-top:2px">Gross · 6/6 recon passed</div>
+            </div>
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px">
+              <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">🇮🇳 IN · ADP Engine</div>
+              <div style="font-size:18px;font-weight:700;color:var(--green)">₹18.4Cr</div>
+              <div style="font-size:10px;color:var(--text2);margin-top:2px">Gross · Stage 5 of 9</div>
+            </div>
+          </div>
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px">
+            <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px">Source-to-Output Recon Status</div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;align-items:center;justify-content:space-between;font-size:11px">
+                <span style="color:var(--text2)">Oracle HCM → NEXO</span>
+                <span class="status-pill sp-green" style="font-size:10px">✓ Clean</span>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;font-size:11px">
+                <span style="color:var(--text2)">ADP India → NEXO</span>
+                <span class="status-pill sp-blue" style="font-size:10px">Running</span>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;font-size:11px">
+                <span style="color:var(--text2)">NEXO → ERP / GL</span>
+                <span class="status-pill sp-gray" style="font-size:10px">Queued</span>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;font-size:11px">
+                <span style="color:var(--text2)">NACHA / NEFT Bank</span>
+                <span class="status-pill sp-gray" style="font-size:10px">Queued</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title-text" style="font-size:12px">FLSA &amp; Labour Compliance</div>
+          <span style="font-size:10px;color:var(--amber);font-weight:700">2 US · 1 IN</span>
+        </div>
+        <div class="panel-body">
+          <div class="err-list">
+            <div class="err-item">
+              <div class="err-icon ei-amber">!</div>
+              <div class="err-content">
+                <div class="err-title">Overtime threshold — 3 non-exempt EEs</div>
+                <div class="err-desc">Employees exceed 40hr/week. FLSA OT not yet reflected in Jan calc.</div>
+                <div class="err-meta">🇺🇸 Oracle HCM · FLSA Sec 207</div>
+              </div>
+            </div>
+            <div class="err-item">
+              <div class="err-icon ei-amber">!</div>
+              <div class="err-content">
+                <div class="err-title">CA Meal Break penalty — 2 employees</div>
+                <div class="err-desc">California-specific premium pay not included in gross earnings.</div>
+                <div class="err-meta">🇺🇸 Oracle HCM · CA Labour Code</div>
+              </div>
+            </div>
+            <div class="err-item">
+              <div class="err-icon ei-blue">⊘</div>
+              <div class="err-content">
+                <div class="err-title">Gratuity eligibility — 8 employees</div>
+                <div class="err-desc">ADP flagged 8 employees crossing 5-year threshold this month.</div>
+                <div class="err-meta">🇮🇳 ADP India · Payment of Gratuity Act</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main-content -->
+</div><!-- /page-wrap -->
+
+<!-- LIVE TICKER -->
+<div class="ticker">
+  <div class="ticker-label">Live</div>
+  <div class="ticker-scroll">
+    <div class="ticker-track">
+      <div class="t-item">OHC-PAY-2612 Earnings Extract <span class="t-blue">78% running</span></div>
+      <div class="t-item t-sep">|</div>
+      <div class="t-item">Oracle State Tax Job <span class="t-red">FAILED · retry queued</span></div>
+      <div class="t-item t-sep">|</div>
+      <div class="t-item">US Sign-off <span class="t-amber">2 approvers pending · Jan 26 deadline</span></div>
+      <div class="t-item t-sep">|</div>
+      <div class="t-item">US Gross estimate <span class="t-green">$48.2M · benefits recon clean</span></div>
+      <div class="t-item t-sep">|</div>
+      <div class="t-item">ADP India TDS Sec 192 <span class="t-blue">54% running</span></div>
+      <div class="t-item t-sep">|</div>
+      <div class="t-item">India PF/ESI <span class="t-green">COMPLETE · challan generated</span></div>
+      <div class="t-item t-sep">|</div>
+      <div class="t-item">India TDS mismatch <span class="t-amber">47 EEs — regime declaration missing</span></div>
+      <div class="t-item t-sep">|</div>
+      <div class="t-item">W-2 Preview <span class="t-red">4 SSN errors — action required</span></div>
+      <div class="t-item t-sep">|</div>
+      <div class="t-item">Form 24Q TDS Return <span class="t-blue">India · generation queued</span></div>
+      <div class="t-item t-sep">|</div>
+      <div class="t-item">NACHA / NEFT bank files <span style="color:rgba(255,255,255,0.35)">queued · awaiting sign-off</span></div>
+      <div class="t-item t-sep">|</div>
+      <!-- duplicate for seamless loop -->
+      <div class="t-item">OHC-PAY-2612 Earnings Extract <span class="t-blue">78% running</span></div>
+      <div class="t-item t-sep">|</div>
+      <div class="t-item">Oracle State Tax Job <span class="t-red">FAILED · retry queued</span></div>
+      <div class="t-item t-sep">|</div>
+      <div class="t-item">US Sign-off <span class="t-amber">2 approvers pending · Jan 26 deadline</span></div>
+      <div class="t-item t-sep">|</div>
+      <div class="t-item">US Gross estimate <span class="t-green">$48.2M · benefits recon clean</span></div>
+      <div class="t-item t-sep">|</div>
+      <div class="t-item">ADP India TDS Sec 192 <span class="t-blue">54% running</span></div>
+      <div class="t-item t-sep">|</div>
+      <div class="t-item">India PF/ESI <span class="t-green">COMPLETE · challan generated</span></div>
+      <div class="t-item t-sep">|</div>
+      <div class="t-item">India TDS mismatch <span class="t-amber">47 EEs — regime declaration missing</span></div>
+      <div class="t-item t-sep">|</div>
+      <div class="t-item">W-2 Preview <span class="t-red">4 SSN errors — action required</span></div>
+      <div class="t-item t-sep">|</div>
+      <div class="t-item">Form 24Q TDS Return <span class="t-blue">India · generation queued</span></div>
+      <div class="t-item t-sep">|</div>
+      <div class="t-item">NACHA / NEFT bank files <span style="color:rgba(255,255,255,0.35)">queued · awaiting sign-off</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Country toggle
+function switchCountry(ctry, btn) {
+  document.querySelectorAll('.ctry-btn').forEach(b => {
+    b.classList.remove('active-us','active-in');
+  });
+  if (ctry === 'US') btn.classList.add('active-us');
+  else if (ctry === 'IN') btn.classList.add('active-in');
+  else btn.style.cssText = 'background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.08);color:var(--text1)';
+}
+
+// Sidebar nav
+document.querySelectorAll('.sb-item').forEach(item => {
+  item.addEventListener('click', function() {
+    document.querySelectorAll('.sb-item').forEach(i => i.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+
+// Tab switching
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', function() {
+    const bar = this.closest('.tab-bar');
+    bar.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+
+// Animate progress bars on load
+window.addEventListener('load', () => {
+  document.querySelectorAll('.prog-fill').forEach(bar => {
+    const w = bar.style.width;
+    bar.style.width = '0%';
+    setTimeout(() => { bar.style.width = w; }, 300);
+  });
+  document.querySelectorAll('.cycle-chip-bar').forEach(bar => {
+    bar.style.transition = 'width 1.5s cubic-bezier(0.4,0,0.2,1)';
+  });
+});
+
+// AI card click feedback
+document.querySelectorAll('.ai-card').forEach(card => {
+  card.addEventListener('click', function() {
+    this.style.transform = 'translateX(4px)';
+    setTimeout(() => { this.style.transform = ''; }, 200);
+  });
+});
+</script>
+</body>
+</html>
