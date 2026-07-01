@@ -1,0 +1,236 @@
+User Story → Spec → Design → Development → Unit Tests → E2E Tests → PR → CI/CD → Deployment
+This requires 8–10 specialized agents, each with a clear contract and handoff.
+
+Got it — now I’m going to give you the real, senior‑level, end‑to‑end agentic architecture you’re asking for, with deep detail, no repetition, and clear explanation of what each agent does.
+
+This is the blueprint you would give to Claude, Copilot, or any agentic system to build a fully automated software‑delivery pipeline:
+
+🧠 High‑Level Architecture: Multi‑Agent Autonomous SDLC
+You are not asking for “deployment automation.”
+You are asking for full SDLC automation:
+
+User Story → Spec → Design → Development → Unit Tests → E2E Tests → PR → CI/CD → Deployment
+
+This requires 8–10 specialized agents, each with a clear contract and handoff.
+
+Below is the actual architecture used in agentic engineering.
+
+🧩 1. User Story Agent
+Purpose
+Transforms vague business input into a structured engineering requirement.
+
+Inputs
+Raw user story
+
+Figma link (optional)
+
+Business acceptance criteria
+
+Outputs
+Structured requirement document
+
+Acceptance criteria in Gherkin format
+
+Feature boundaries
+
+Non-functional requirements
+
+Responsibilities
+Clarify ambiguity
+
+Identify missing constraints
+
+Produce a developer-ready requirement
+
+
+
+🧩 2. Specification Agent
+Purpose
+Turns the requirement into a technical spec.
+
+Inputs
+Output from User Story Agent
+
+Figma nodes (optional)
+
+Outputs
+API contract (OpenAPI)
+
+UI component spec (React/MUI)
+
+Data model spec
+
+Sequence diagrams
+
+Error handling rules
+
+Responsibilities
+Define exact component structure
+
+Define exact backend endpoints
+
+Define exact data flow
+
+Produce a spec that developers can implement without guessing
+
+Prompt to Claude
+“You are the Specification Agent. Produce a complete technical spec including API contracts, UI component structure, data models, and sequence diagrams.”
+
+🧩 3. Development Agent
+Purpose
+Writes the actual code.
+
+Inputs
+Technical spec
+
+Outputs
+React/MUI frontend code
+
+Spring Boot backend code
+
+Integration glue
+
+Local environment setup
+
+Responsibilities
+Follow spec exactly
+
+Generate modular, testable code
+
+Annotate code with comments
+
+Produce commit-ready code
+
+Prompt to Claude
+“You are the Development Agent. Implement the spec exactly. Generate production‑ready code with comments and folder structure.”
+
+🧩 4. Unit Test Agent
+Purpose
+Creates unit tests for backend + frontend.
+
+Inputs
+Code from Development Agent
+
+Outputs
+JUnit tests (Spring Boot)
+
+Jest/RTL tests (React)
+
+Coverage report
+
+Responsibilities
+Cover all branches
+
+Mock external dependencies
+
+Validate business logic
+
+Prompt to Claude
+“You are the Unit Test Agent. Generate full unit test coverage for all modules.”
+
+🧩 5. E2E Test Agent (Playwright)
+Purpose
+Runs browser‑level tests.
+
+Inputs
+Running dev environment
+
+User flows from spec
+
+Outputs
+Playwright test suite
+
+Screenshots + videos
+
+CI‑ready test scripts
+
+Responsibilities
+Validate UI behavior
+
+Validate API integration
+
+Validate user acceptance criteria
+
+Prompt to Claude
+“You are the E2E Test Agent. Generate Playwright tests for all user flows defined in the spec.”
+
+🧩 6. Code Review Agent
+Purpose
+Reviews code before PR creation.
+
+Inputs
+Code + tests
+
+Outputs
+Review comments
+
+Suggested improvements
+
+Security warnings
+
+Responsibilities
+Enforce best practices
+
+Enforce security
+
+Enforce performance
+
+Prompt to Claude
+“You are the Code Review Agent. Review the code and produce actionable improvements.”
+
+🧩 7. PR Agent
+Purpose
+Creates a pull request.
+
+Inputs
+Final code
+
+Review notes
+
+Outputs
+PR title
+
+PR description
+
+Linked issues
+
+Changelog
+
+Responsibilities
+Summarize changes
+
+Attach test results
+
+Attach screenshots
+
+Tag reviewers
+
+Prompt to Claude
+“You are the PR Agent. Create a complete PR description including summary, test results, and linked issues.”
+
+
+🧩 8. Orchestrator Agent
+Purpose
+Controls the entire workflow.
+
+Inputs
+User story
+
+Outputs
+Calls each agent in order
+
+Passes output to next agent
+
+Ensures workflow completion
+
+Responsibilities
+Maintain state
+
+Handle failures
+
+Retry steps
+
+Produce final delivery package
+
+Prompt to Claude
+“You are the Orchestrator Agent. Execute the entire SDLC workflow by coordinating all specialized agents.”
